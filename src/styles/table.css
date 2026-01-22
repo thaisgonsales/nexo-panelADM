@@ -1,0 +1,21 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  background-color: #f9fafb;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  border-top: 1px solid #e5e7eb;
+}
