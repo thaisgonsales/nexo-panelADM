@@ -127,7 +127,7 @@ export default function Usuarios({ token }: Props) {
             /> */}
 
             <input
-              placeholder="Correo electrónico"
+              placeholder="Correo electrónico o usuario"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="auth-input"
@@ -166,7 +166,7 @@ export default function Usuarios({ token }: Props) {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Correo</th>
+                  <th>Usuario</th>
                   <th>Rol</th>
                   <th>Fecha creación</th>
                   <th>Acciones</th>
