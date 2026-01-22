@@ -5,43 +5,87 @@
   justify-content: center;
 }
 
+/* ===== CARD (GLASS) ===== */
 .auth-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
   padding: 32px;
   width: 360px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
 
+/* ===== TÍTULO ===== */
 .auth-title {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 26px;
+  font-weight: 800;
 }
 
+/* ===== LABEL ===== */
 .auth-label {
   font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  display: block;
 }
 
+/* ===== INPUTS (CORRIGE A SENHA 👀) ===== */
 .auth-input {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+
+  font-size: 14px;
 }
 
+/* texto digitado */
+.auth-input:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.45);
+}
+
+/* placeholder */
+.auth-input::placeholder {
+  color: #cbd5f5;
+  opacity: 0.85;
+}
+
+/* ===== BOTÃO ===== */
 .auth-button {
   width: 100%;
-  padding: 12px;
-  background-color: #2563eb;
-  color: #ffffff;
+  padding: 14px;
+
+  background: #22c55e;
+  color: #022c22;
+
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 14px;
+
+  font-weight: 800;
   cursor: pointer;
 }
 
+.auth-button:hover {
+  background: #16a34a;
+}
+
+/* ===== ERRO ===== */
 .auth-error {
-  color: #dc2626;
+  color: #f87171;
   margin-top: 12px;
   font-size: 13px;
+  text-align: center;
 }

@@ -40,7 +40,11 @@ export default function Usuarios({ token }: Props) {
   }
 
   async function handleCrearUsuario() {
-    if (!nombre || !email || !password) {
+    if (
+      //!nombre
+      !email ||
+      !password
+    ) {
       showToast("Nombre, correo y contraseña son obligatorios", "error");
       return;
     }
@@ -115,12 +119,12 @@ export default function Usuarios({ token }: Props) {
           <div style={{ marginBottom: 24 }}>
             <h3>Crear usuario</h3>
 
-            <input
+            {/* <input
               placeholder="Nombre del funcionario"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               className="auth-input"
-            />
+            /> */}
 
             <input
               placeholder="Correo electrónico"
@@ -171,25 +175,31 @@ export default function Usuarios({ token }: Props) {
               <tbody>
                 {usuarios.map((u) => (
                   <tr key={u.id}>
+                    {/*
+        <td>{u.nombre}</td>
+        TODO: Mostrar nombre del funcionario cuando exista en el backend
+      */}
                     <td>{u.email}</td>
                     <td>{u.rol}</td>
                     <td>{new Date(u.created_at).toLocaleString("es-CL")}</td>
                     <td>
-                      <button
-                        className="btn-icon btn-edit"
-                        title="Resetear contraseña"
-                        onClick={() => setUsuarioReset(u)}
-                      >
-                        🔑
-                      </button>
+                      <div className="table-actions">
+                        <button
+                          className="btn-icon btn-edit"
+                          title="Resetear contraseña"
+                          onClick={() => setUsuarioReset(u)}
+                        >
+                          🔑
+                        </button>
 
-                      <button
-                        className="btn-icon btn-delete"
-                        title="Eliminar usuario"
-                        onClick={() => handleEliminarUsuario(u)}
-                      >
-                        🗑️
-                      </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          title="Eliminar usuario"
+                          onClick={() => handleEliminarUsuario(u)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

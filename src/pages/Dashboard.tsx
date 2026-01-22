@@ -13,10 +13,11 @@ import {
 } from "recharts";
 
 const COLORS = {
-  primary: "#2563eb",
-  success: "#16a34a",
-  warning: "#d97706",
-  grid: "#e5e7eb",
+  primary: "#22c55e",
+  success: "#6ee7b7",
+  warning: "#facc15",
+  grid: "rgba(255,255,255,0.15)",
+  text: "#e5e7eb",
 };
 
 type Props = {
@@ -134,9 +135,20 @@ export default function Dashboard({ token }: Props) {
               <ResponsiveContainer>
                 <BarChart data={riesgosPorTipo}>
                   <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="tipo" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
+
+                  <XAxis dataKey="tipo" stroke={COLORS.text} />
+                  <YAxis stroke={COLORS.text} />
+
+                  <Tooltip
+                    contentStyle={{
+                      background: "#020617",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      borderRadius: 10,
+                      color: "#e5e7eb",
+                    }}
+                  />
+
+                  {/* 👇 ISSO É O MAIS IMPORTANTE */}
                   <Bar
                     dataKey="total"
                     fill={COLORS.primary}

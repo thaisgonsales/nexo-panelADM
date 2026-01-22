@@ -1,61 +1,25 @@
 .page {
   min-height: 100vh;
-  background-color: #f3f4f6;
-}
-
-.header {
-  background-color: #111827;
-  color: #ffffff;
-  padding: 16px 32px;
-}
-
-.header-title {
-  margin: 0;
-}
-
-.header-subtitle {
-  font-size: 13px;
-  color: #9ca3af;
+  background: transparent;
 }
 
 .main {
   padding: 32px;
 }
 
-.card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-}
+/* ===== NAVBAR ===== */
 
 .navbar {
-  height: 56px;
-  background-color: #111827;
-  color: #ffffff;
+  height: 64px;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(12px);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 0 32px;
-}
-
-.navbar-left {
-  font-size: 15px;
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-}
-
-.navbar {
-  height: 56px;
-  background-color: #111827;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .navbar-left {
@@ -64,28 +28,49 @@
   gap: 32px;
 }
 
+.navbar-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.navbar-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+}
+
+.navbar-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 .navbar-menu {
   display: flex;
-  gap: 16px;
+  gap: 18px;
 }
 
 .navbar-link {
   background: transparent;
   border: none;
-  color: #d1d5db;
+  color: #94a3b8;
   font-size: 14px;
   cursor: pointer;
-  padding: 4px 6px;
+
+  padding: 6px 10px;
+  border-radius: 10px;
 }
 
 .navbar-link:hover {
-  color: #ffffff;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .navbar-link.active {
-  color: #ffffff;
+  color: #22c55e;
   font-weight: 600;
-  border-bottom: 2px solid #2563eb;
 }
 
 .navbar-right {
@@ -94,142 +79,162 @@
 }
 
 .navbar-logout {
-  background: transparent;
-  border: 1px solid #374151;
-  color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e5e7eb;
+
+  padding: 6px 14px;
+  border-radius: 10px;
   font-size: 13px;
+  cursor: pointer;
 }
 
 .navbar-logout:hover {
-  background-color: #1f2933;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== CARD (GLASS) ===== */
+
+.card {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+}
+
+/* ===== BOTÕES ===== */
+
+.btn-primary,
+.auth-button,
+.btn-filter.primary {
+  background: #22c55e;
+  color: #022c22;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-primary:hover,
+.auth-button:hover,
+.btn-filter.primary:hover {
+  background: #16a34a;
+}
+
+.btn-filter.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+}
+
+.btn-filter.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .btn-icon {
-  border: none;
   background: transparent;
+  border: none;
   cursor: pointer;
   font-size: 18px;
   margin-right: 6px;
-}
-
-.btn-edit:hover {
-  color: #2563eb;
 }
 
 .btn-delete:hover {
   color: #dc2626;
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+.auth-container {
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
-.modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
+.auth-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  padding: 32px;
   width: 100%;
   max-width: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(14px);
 }
 
-.modal label {
-  display: block;
+.auth-title {
+  text-align: center;
+  color: #6ee7b7;
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+
+.auth-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+}
+
+.auth-input:focus {
+  outline: 2px solid rgba(34, 197, 94, 0.6);
+}
+
+.auth-error {
   margin-top: 12px;
-  margin-bottom: 4px;
+  color: #f87171;
   font-weight: 600;
 }
 
-.modal select,
-.modal textarea {
-  width: 100%;
-  padding: 8px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* ===== FILTROS ===== */
-
-.filters {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
 .filter-input {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  color: #e5e7eb;
   font-size: 14px;
-  min-width: 160px;
+}
+
+select.filter-input option {
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.filter-input::placeholder {
+  color: #94a3b8;
 }
 
 .filter-input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
 }
 
-/* ===== BOTÕES DE FILTRO ===== */
+/* ===== BOTÃO LIMPIAR (FILTER SECONDARY) ===== */
+.btn-filter.secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e5e7eb !important;
 
-.btn-filter {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 12px !important;
+
+  padding: 10px 16px !important;
   font-weight: 600;
   font-size: 14px;
-  transition: all 0.15s ease;
-}
 
-.btn-filter.primary {
-  background: #2563eb;
-  color: #fff;
-}
-
-.btn-filter.primary:hover {
-  background: #1e40af;
-}
-
-.btn-filter.secondary {
-  background: #e5e7eb;
-  color: #374151;
+  cursor: pointer;
 }
 
 .btn-filter.secondary:hover {
-  background: #d1d5db;
-}
-
-.btn-map {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.btn-map:hover {
-  background: #bae6fd;
+  background: rgba(255, 255, 255, 0.16) !important;
 }

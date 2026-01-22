@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
 import { login } from "../services/api";
+import loginVideo from "../assets/login-bg.mp4";
 
 type Props = {
   onLogin: (token: string) => void;
@@ -30,9 +32,38 @@ export default function Login({ onLogin }: Props) {
       setError("Correo o contraseña incorrectos");
     }
   }
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // useEffect(() => {
+  //   if (videoRef.current) {
+  //     videoRef.current.playbackRate = 0.5; // 👈 deixa o vídeo mais lento
+  //   }
+  // }, []);
+
+  function handleVideoLoop() {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+
+    // quando chega perto do final, volta suavemente
+    if (video.currentTime >= video.duration - 0.3) {
+      video.currentTime = 0.05;
+    }
+  }
 
   return (
     <div className="auth-container">
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="login-video"
+        onTimeUpdate={handleVideoLoop}
+      >
+        <source src={loginVideo} type="video/mp4" />
+      </video>
+
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2 className="auth-title">Panel de Administración</h2>
 

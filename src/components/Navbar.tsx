@@ -10,8 +10,13 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <strong>Panel de Administración</strong>
+        {/* MARCA */}
+        <div className="navbar-brand">
+          <div className="navbar-title">NEXO · Admin Panel</div>
+          <div className="navbar-subtitle">Community Watch & Map</div>
+        </div>
 
+        {/* MENU */}
         <nav className="navbar-menu">
           <button
             className={
