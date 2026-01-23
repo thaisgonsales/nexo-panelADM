@@ -67,7 +67,7 @@ export default function RiesgoComentarios({ token, riesgoId }: Props) {
           <div
             key={r.id}
             style={{
-              background: "#fff7ed",
+              background: "#4b4948",
               border: "2px solid #facc15",
               padding: 12,
               borderRadius: 8,

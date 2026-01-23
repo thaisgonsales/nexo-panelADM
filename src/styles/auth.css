@@ -1,3 +1,7 @@
+/* =============================== */
+/* AUTH / LOGIN BASE */
+/* =============================== */
+
 .auth-container {
   min-height: 100vh;
   display: flex;
@@ -35,7 +39,7 @@
   display: block;
 }
 
-/* ===== INPUTS (CORRIGE A SENHA 👀) ===== */
+/* ===== INPUTS ===== */
 .auth-input {
   width: 100%;
   padding: 12px 14px;
@@ -50,20 +54,18 @@
   font-size: 14px;
 }
 
-/* texto digitado */
+.auth-input::placeholder {
+  color: #cbd5f5;
+  opacity: 0.85;
+}
+
 .auth-input:focus {
   outline: none;
   border-color: #22c55e;
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.45);
 }
 
-/* placeholder */
-.auth-input::placeholder {
-  color: #cbd5f5;
-  opacity: 0.85;
-}
-
-/* ===== BOTÃO ===== */
+/* ===== BOTÃO LOGIN ===== */
 .auth-button {
   width: 100%;
   padding: 14px;
@@ -82,10 +84,104 @@
   background: #16a34a;
 }
 
-/* ===== ERRO ===== */
-.auth-error {
-  color: #f87171;
-  margin-top: 12px;
-  font-size: 13px;
-  text-align: center;
+/* =============================== */
+/* MODAL */
+/* =============================== */
+
+.modal label {
+  display: block;
+  margin-bottom: 6px;
+
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+/* ===== SELECT NO MODAL ===== */
+.modal select {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+
+  font-size: 14px;
+
+  appearance: none;
+}
+
+.modal select option {
+  background-color: #020617;
+  color: #e5e7eb;
+}
+
+.modal select:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+}
+
+/* ===== RESET BUTTON NATIVO (SÓ NO MODAL) ===== */
+.modal button {
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+
+  cursor: pointer;
+}
+
+/* ===== MODAL ACTIONS ===== */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ===== BOTÃO CANCELAR (COM SOMBRA VERDE 👇) ===== */
+.modal-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
+
+  transition: all 0.15s ease;
+}
+
+/* ===== HOVER PADRÃO VERDE (CANCELAR + GUARDAR) ===== */
+.modal-actions .btn-primary:hover,
+.modal-actions .btn-secondary:hover {
+  background: #16a34a;
+  color: #022c22;
+
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.45);
+
+  transform: translateY(-1px);
+}
+
+/* ===== BOTÃO GUARDAR ===== */
+.modal-actions .btn-primary {
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+
+  transition: all 0.15s ease;
 }

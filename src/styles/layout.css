@@ -1,10 +1,10 @@
 .page {
   min-height: 100vh;
-  background: transparent;
+  overflow-x: hidden;
 }
 
 .main {
-  padding: 32px;
+  min-height: calc(100vh - 64px); /* altura da navbar */
 }
 
 /* ===== NAVBAR ===== */
@@ -145,43 +145,9 @@
   color: #dc2626;
 }
 
-.auth-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.auth-card {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  padding: 32px;
-  width: 100%;
-  max-width: 420px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(14px);
-}
-
-.auth-title {
-  text-align: center;
-  color: #6ee7b7;
-  font-size: 28px;
-  margin-bottom: 24px;
-}
-
 .auth-label {
   font-size: 13px;
   color: #94a3b8;
-}
-
-.auth-input {
-  width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  color: #fff;
 }
 
 .auth-input:focus {
@@ -222,7 +188,7 @@ select.filter-input option {
 
 /* ===== BOTÃO LIMPIAR (FILTER SECONDARY) ===== */
 .btn-filter.secondary {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(2, 6, 23, 0.6) !important;
   color: #e5e7eb !important;
 
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
@@ -236,5 +202,29 @@ select.filter-input option {
 }
 
 .btn-filter.secondary:hover {
-  background: rgba(255, 255, 255, 0.16) !important;
+  background: rgba(12, 12, 12, 0.16) !important;
+}
+
+/* ===== MODAL SAFE (FINAL) ===== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.6);
+  z-index: 10000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: rgba(2, 6, 23, 0.89);
+  border-radius: 12px;
+  padding: 24px;
+
+  width: 100%;
+  max-width: 420px;
+
+  position: relative;
 }

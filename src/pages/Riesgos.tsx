@@ -139,24 +139,34 @@ export default function Riesgos({ token }: Props) {
       return;
     }
 
-    await editarRiesgo(token, editando.id, {
-      tipo: tipoEdit,
-      descripcion: tipoEdit === "Otro" ? descEdit : "",
-    });
+    try {
+      const payload: any = {
+        tipo: tipoEdit,
+      };
 
-    setRiesgos((prev) =>
-      prev.map((r) =>
-        r.id === editando.id
-          ? {
-              ...r,
-              tipo: tipoEdit,
-              descripcion: tipoEdit === "Otro" ? descEdit : "",
-            }
-          : r,
-      ),
-    );
+      if (tipoEdit === "Otro") {
+        payload.descripcion = descEdit;
+      }
 
-    setEditando(null);
+      await editarRiesgo(token, editando.id, payload);
+
+      setRiesgos((prev) =>
+        prev.map((r) =>
+          r.id === editando.id
+            ? {
+                ...r,
+                tipo: tipoEdit,
+                descripcion: tipoEdit === "Otro" ? descEdit : "",
+              }
+            : r,
+        ),
+      );
+
+      setEditando(null); // 👈 fecha modal
+    } catch (error) {
+      console.error("Error al guardar riesgo:", error);
+      alert("No se pudo guardar el riesgo. Revisa la conexión.");
+    }
   }
 
   return (
@@ -367,8 +377,19 @@ export default function Riesgos({ token }: Props) {
             )}
 
             <div className="modal-actions">
-              <button onClick={() => setEditando(null)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleGuardarEdicion}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setEditando(null)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleGuardarEdicion}
+              >
                 Guardar
               </button>
             </div>

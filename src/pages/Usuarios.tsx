@@ -135,9 +135,9 @@ export default function Usuarios({ token }: Props) {
 
             <input
               type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nueva contraseña"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               className="auth-input"
             />
 
@@ -228,8 +228,19 @@ export default function Usuarios({ token }: Props) {
             />
 
             <div className="modal-actions">
-              <button onClick={() => setUsuarioReset(null)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleResetPassword}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setUsuarioReset(null)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleResetPassword}
+              >
                 Guardar
               </button>
             </div>
