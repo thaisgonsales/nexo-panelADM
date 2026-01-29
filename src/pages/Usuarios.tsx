@@ -4,6 +4,7 @@ import {
   crearUsuario,
   resetearPassword,
   eliminarUsuario,
+  setUsuarioActivo,
 } from "../services/api";
 import { useToast } from "../context/ToastContext";
 
@@ -15,6 +16,11 @@ type Usuario = {
   id: string;
   email: string;
   rol: string;
+  nombre?: string;
+  rut?: string;
+  empresa?: string;
+  region?: string;
+  active?: number | boolean;
   created_at: string;
 };
 
@@ -26,9 +32,13 @@ export default function Usuarios({ token }: Props) {
 
   // crear usuario
   const [nombre, setNombre] = useState("");
+  const [rut, setRut] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<"admin" | "user">("user");
+  const [empresa, setEmpresa] = useState("Inproel");
+  const [region, setRegion] = useState("");
+  const [active, setActive] = useState(true);
 
   // reset contraseña
   const [usuarioReset, setUsuarioReset] = useState<Usuario | null>(null);
@@ -39,26 +49,85 @@ export default function Usuarios({ token }: Props) {
     setUsuarios(data);
   }
 
+  function validarRut(rutValue: string) {
+    const clean = rutValue.replace(/[^0-9kK]/g, "").toUpperCase();
+    if (clean.length < 2) return false;
+
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+    if (!/^\d+$/.test(body)) return false;
+
+    let sum = 0;
+    let multiplier = 2;
+    for (let i = body.length - 1; i >= 0; i--) {
+      sum += Number(body[i]) * multiplier;
+      multiplier = multiplier === 7 ? 2 : multiplier + 1;
+    }
+
+    const mod = 11 - (sum % 11);
+    const dvCalc = mod === 11 ? "0" : mod === 10 ? "K" : String(mod);
+    return dv === dvCalc;
+  }
+
+  function normalizarRut(rutValue: string) {
+    return rutValue.replace(/[^0-9kK]/g, "").toUpperCase();
+  }
+
+  function formatearRut(rutValue: string) {
+    const clean = normalizarRut(rutValue);
+    if (clean.length < 2) return rutValue;
+
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+
+    const withDots = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${withDots}-${dv}`;
+  }
+
   async function handleCrearUsuario() {
     if (
-      //!nombre
+      !nombre ||
+      !rut ||
       !email ||
-      !password
+      !password ||
+      !empresa ||
+      !region
     ) {
-      showToast("Nombre, correo y contraseña son obligatorios", "error");
+      showToast(
+        "Nombre, RUT, correo, contraseña, empresa y región son obligatorios",
+        "error",
+      );
+      return;
+    }
+
+    if (!validarRut(rut)) {
+      showToast("RUT inválido", "error");
       return;
     }
 
     try {
-      await crearUsuario(token, email, password, rol);
+      await crearUsuario(token, {
+        nombre,
+        rut,
+        email,
+        password,
+        rol,
+        empresa,
+        region,
+        active,
+      });
 
       showToast("Usuario creado correctamente", "success");
 
       // limpiar formulario
       setNombre("");
+      setRut("");
       setEmail("");
       setPassword("");
       setRol("user");
+      setEmpresa("Inproel");
+      setRegion("");
+      setActive(true);
 
       await cargarUsuarios();
     } catch {
@@ -103,6 +172,27 @@ export default function Usuarios({ token }: Props) {
     }
   }
 
+  async function handleToggleActivo(user: Usuario) {
+    const isActive =
+      typeof user.active === "number" ? user.active === 1 : !!user.active;
+    const nextActive = !isActive;
+
+    try {
+      await setUsuarioActivo(token, user.id, nextActive);
+      setUsuarios((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, active: nextActive ? 1 : 0 } : u,
+        ),
+      );
+      showToast(
+        nextActive ? "Usuario activado" : "Usuario desactivado",
+        "success",
+      );
+    } catch {
+      showToast("No se pudo actualizar el estado", "error");
+    }
+  }
+
   useEffect(() => {
     listarUsuarios(token)
       .then(setUsuarios)
@@ -119,12 +209,20 @@ export default function Usuarios({ token }: Props) {
           <div style={{ marginBottom: 24 }}>
             <h3>Crear usuario</h3>
 
-            {/* <input
-              placeholder="Nombre del funcionario"
+            <input
+              placeholder="Nombre completo"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               className="auth-input"
-            /> */}
+            />
+
+            <input
+              placeholder="RUT"
+              value={rut}
+              onChange={(e) => setRut(e.target.value)}
+              onBlur={() => setRut(formatearRut(rut))}
+              className="auth-input"
+            />
 
             <input
               placeholder="Correo electrónico o usuario"
@@ -135,11 +233,29 @@ export default function Usuarios({ token }: Props) {
 
             <input
               type="password"
-              placeholder="Nueva contraseña"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="auth-input"
             />
+
+            <select
+              value={empresa}
+              onChange={(e) => setEmpresa(e.target.value)}
+              className="auth-input"
+            >
+              <option value="Inproel">Inproel</option>
+            </select>
+
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="auth-input"
+            >
+              <option value="">Seleccione región / zona</option>
+              <option value="Chiloé">Chiloé</option>
+              <option value="Valdivia">Valdivia</option>
+            </select>
 
             <select
               value={rol}
@@ -148,6 +264,15 @@ export default function Usuarios({ token }: Props) {
             >
               <option value="user">Usuario</option>
               <option value="admin">Administrador</option>
+            </select>
+
+            <select
+              value={active ? "1" : "0"}
+              onChange={(e) => setActive(e.target.value === "1")}
+              className="auth-input"
+            >
+              <option value="1">Activo</option>
+              <option value="0">Inactivo</option>
             </select>
 
             <button className="auth-button" onClick={handleCrearUsuario}>
@@ -166,7 +291,12 @@ export default function Usuarios({ token }: Props) {
             <table className="table">
               <thead>
                 <tr>
+                  <th>Nombre</th>
+                  <th>RUT</th>
                   <th>Usuario</th>
+                  <th>Empresa</th>
+                  <th>Región</th>
+                  <th>Estado</th>
                   <th>Rol</th>
                   <th>Fecha creación</th>
                   <th>Acciones</th>
@@ -175,15 +305,46 @@ export default function Usuarios({ token }: Props) {
               <tbody>
                 {usuarios.map((u) => (
                   <tr key={u.id}>
-                    {/*
-        <td>{u.nombre}</td>
-        TODO: Mostrar nombre del funcionario cuando exista en el backend
-      */}
+                    <td>{u.nombre || "-"}</td>
+                    <td>{u.rut ? formatearRut(u.rut) : "-"}</td>
                     <td>{u.email}</td>
+                    <td>{u.empresa || "-"}</td>
+                    <td>{u.region || "-"}</td>
+                    <td>
+                      {typeof u.active === "number"
+                        ? u.active === 1
+                          ? "Activo"
+                          : "Inactivo"
+                        : u.active
+                          ? "Activo"
+                          : "Inactivo"}
+                    </td>
                     <td>{u.rol}</td>
                     <td>{new Date(u.created_at).toLocaleString("es-CL")}</td>
                     <td>
                       <div className="table-actions">
+                        <button
+                          className="btn-icon btn-edit"
+                          title={
+                            typeof u.active === "number"
+                              ? u.active === 1
+                                ? "Desactivar"
+                                : "Activar"
+                              : u.active
+                                ? "Desactivar"
+                                : "Activar"
+                          }
+                          onClick={() => handleToggleActivo(u)}
+                        >
+                          {typeof u.active === "number"
+                            ? u.active === 1
+                              ? "⏸️"
+                              : "▶️"
+                            : u.active
+                              ? "⏸️"
+                              : "▶️"}
+                        </button>
+
                         <button
                           className="btn-icon btn-edit"
                           title="Resetear contraseña"

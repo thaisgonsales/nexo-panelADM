@@ -1,5 +1,5 @@
 const API_URL = "https://app-riscos-backend-production.up.railway.app";
-// const API_URL = "http://192.168.1.29:3000";
+//const API_URL = "http://192.168.1.29:3000";
 
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_URL}/login`, {
@@ -54,9 +54,16 @@ export async function listarUsuarios(token: string) {
 
 export async function crearUsuario(
   token: string,
-  email: string,
-  password: string,
-  rol: "admin" | "user",
+  payload: {
+    nombre: string;
+    rut: string;
+    email: string;
+    password: string;
+    rol: "admin" | "user";
+    empresa: string;
+    region: string;
+    active: boolean;
+  },
 ) {
   const res = await fetch(`${API_URL}/usuarios`, {
     method: "POST",
@@ -64,15 +71,32 @@ export async function crearUsuario(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      email,
-      password,
-      rol,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     throw new Error("Error al crear usuario");
+  }
+
+  return res.json();
+}
+
+export async function setUsuarioActivo(
+  token: string,
+  userId: string,
+  active: boolean,
+) {
+  const res = await fetch(`${API_URL}/usuarios/${userId}/active`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ active }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al actualizar estado");
   }
 
   return res.json();
@@ -227,4 +251,23 @@ export async function eliminarReporte(token: string, reporteId: number) {
   }
 
   return res.json();
+}
+
+export async function descargarReporteMensual(
+  token: string,
+  from: string,
+  to: string,
+) {
+  const params = new URLSearchParams({ from, to });
+  const res = await fetch(`${API_URL}/admin/reportes/mensual?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al generar reporte");
+  }
+
+  return res.blob();
 }
