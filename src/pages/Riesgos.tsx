@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   listarRiesgos,
   listarUsuarios,
@@ -21,6 +21,9 @@ type Riesgo = {
   longitude: number;
   created_at: string;
   usuario_email: string | null;
+  usuario_nombre?: string | null;
+  empresa?: string | null;
+  region?: string | null;
   estado: "activo" | "resuelto";
   reportes_pendientes: number; // 👈 NOVO
 };
@@ -28,6 +31,9 @@ type Riesgo = {
 type Usuario = {
   id: string;
   email: string;
+  nombre?: string;
+  empresa?: string;
+  region?: string;
 };
 
 const TIPOS_RIESGO = [
@@ -71,6 +77,30 @@ export default function Riesgos({ token }: Props) {
 
   // mapa
   const [riesgoMapa, setRiesgoMapa] = useState<Riesgo | null>(null);
+
+  const usuariosByEmail = useMemo(() => {
+    const map = new Map<string, Usuario>();
+    usuarios.forEach((u) => {
+      if (u.email) map.set(u.email, u);
+    });
+    return map;
+  }, [usuarios]);
+
+  function getUsuarioLabel(riesgo: Riesgo) {
+    const parts = [riesgo.usuario_nombre, riesgo.empresa, riesgo.region].filter(
+      Boolean,
+    );
+    if (parts.length > 0) return parts.join(" • ");
+
+    const email = riesgo.usuario_email;
+    if (!email) return "—";
+    const user = usuariosByEmail.get(email);
+    if (!user) return email;
+    const fallbackParts = [user.nombre, user.empresa, user.region].filter(
+      Boolean,
+    );
+    return fallbackParts.length > 0 ? fallbackParts.join(" • ") : email;
+  }
 
   useEffect(() => {
     listarUsuarios(token).then(setUsuarios);
@@ -185,7 +215,9 @@ export default function Riesgos({ token }: Props) {
               <option value="">Todos los usuarios</option>
               {usuarios.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.email}
+                  {u.nombre
+                    ? `${u.nombre} · ${u.empresa || "-"} · ${u.region || "-"}`
+                    : u.email}
                 </option>
               ))}
             </select>
@@ -237,7 +269,7 @@ export default function Riesgos({ token }: Props) {
                     <tr>
                       <td>{r.tipo}</td>
                       <td>{r.descripcion || "-"}</td>
-                      <td>{r.usuario_email || "—"}</td>
+                      <td>{getUsuarioLabel(r)}</td>
                       <td>{formatFechaHora(r.created_at)}</td>
 
                       <td>

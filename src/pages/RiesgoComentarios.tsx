@@ -3,6 +3,7 @@ import {
   listarComentariosPorRiesgo,
   listarReportesPorRiesgo,
   eliminarReporte,
+  listarUsuarios,
 } from "../services/api";
 
 type Props = {
@@ -14,13 +15,22 @@ type Comentario = {
   id: number;
   texto: string;
   created_at: string;
+  user_id?: string;
   usuario: string;
   tipo: "comentario" | "reporte_resuelto";
+};
+
+type Usuario = {
+  id: string;
+  nombre?: string;
+  empresa?: string;
+  region?: string;
 };
 
 export default function RiesgoComentarios({ token, riesgoId }: Props) {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [reportes, setReportes] = useState<Comentario[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,13 +39,24 @@ export default function RiesgoComentarios({ token, riesgoId }: Props) {
     Promise.all([
       listarComentariosPorRiesgo(token, riesgoId),
       listarReportesPorRiesgo(token, riesgoId),
+      listarUsuarios(token),
     ])
-      .then(([comentariosData, reportesData]) => {
+      .then(([comentariosData, reportesData, usuariosData]) => {
         setComentarios(comentariosData);
         setReportes(reportesData);
+        setUsuarios(usuariosData);
       })
       .finally(() => setLoading(false));
   }, [token, riesgoId]);
+
+  function getUsuarioLabel(comentario: Comentario) {
+    const userId = comentario.user_id;
+    if (!userId) return comentario.usuario;
+    const user = usuarios.find((u) => u.id === userId);
+    if (!user) return comentario.usuario;
+    const parts = [user.nombre, user.empresa, user.region].filter(Boolean);
+    return parts.length > 0 ? parts.join(" • ") : comentario.usuario;
+  }
 
   if (loading) {
     return <p>Cargando comentarios…</p>;
@@ -51,7 +72,7 @@ export default function RiesgoComentarios({ token, riesgoId }: Props) {
       ) : (
         comentarios.map((c) => (
           <div key={c.id} className="comment-box">
-            <strong>{c.usuario}</strong>
+            <strong>{getUsuarioLabel(c)}</strong>
             <p>{c.texto}</p>
           </div>
         ))
@@ -74,7 +95,7 @@ export default function RiesgoComentarios({ token, riesgoId }: Props) {
               marginBottom: 10,
             }}
           >
-            <strong>{r.usuario}</strong>
+            <strong>{getUsuarioLabel(r)}</strong>
             <p>{r.texto}</p>
 
             <button
