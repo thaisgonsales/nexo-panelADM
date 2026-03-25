@@ -36,7 +36,7 @@ export default function Usuarios({ token }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<"admin" | "user">("user");
-  const [empresa, setEmpresa] = useState("Inproel");
+  const [empresa, setEmpresa] = useState("");
   const [region, setRegion] = useState("");
   const [active, setActive] = useState(true);
 
@@ -125,7 +125,7 @@ export default function Usuarios({ token }: Props) {
       setEmail("");
       setPassword("");
       setRol("user");
-      setEmpresa("Inproel");
+      setEmpresa("");
       setRegion("");
       setActive(true);
 
@@ -239,13 +239,12 @@ export default function Usuarios({ token }: Props) {
               className="auth-input"
             />
 
-            <select
+            <input
+              placeholder="Empresa"
               value={empresa}
               onChange={(e) => setEmpresa(e.target.value)}
               className="auth-input"
-            >
-              <option value="Inproel">Inproel</option>
-            </select>
+            />
 
             <select
               value={region}

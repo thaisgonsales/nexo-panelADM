@@ -10,6 +10,7 @@ type Props = {
 export default function Login({ onLogin }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -76,11 +77,27 @@ export default function Login({ onLogin }: Props) {
 
         <label className="auth-label">Contraseña</label>
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           className="auth-input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword((current) => !current)}
+          style={{
+            alignSelf: "flex-end",
+            marginTop: "-0.5rem",
+            marginBottom: "1rem",
+            background: "transparent",
+            border: "none",
+            color: "#0f766e",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+        </button>
 
         <button className="auth-button">Ingresar</button>
 

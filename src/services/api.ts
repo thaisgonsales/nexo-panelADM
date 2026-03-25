@@ -14,6 +14,7 @@ export async function login(email: string, password: string) {
 
 type RiesgosFiltros = {
   userId?: string;
+  region?: string;
   from?: string;
   to?: string;
 };
@@ -22,6 +23,7 @@ export async function listarRiesgos(token: string, filtros?: RiesgosFiltros) {
   const params = new URLSearchParams();
 
   if (filtros?.userId) params.append("user_id", filtros.userId);
+  if (filtros?.region) params.append("region", filtros.region);
   if (filtros?.from) params.append("from", filtros.from);
   if (filtros?.to) params.append("to", filtros.to);
 
@@ -120,7 +122,7 @@ export async function eliminarRiesgo(token: string, id: string) {
 export async function editarRiesgo(
   token: string,
   id: string,
-  data: { tipo: string; descripcion: string },
+  data: { tipo: string; descripcion: string; icono?: string | null },
 ) {
   const res = await fetch(`${API_URL}/riesgos/${id}`, {
     method: "PUT",

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { descargarReporteMensual, listarRiesgos } from "../services/api";
+import {
+  descargarReporteMensual,
+  listarRiesgos,
+  listarUsuarios,
+} from "../services/api";
 import {
   BarChart,
   Bar,
@@ -23,6 +27,13 @@ const COLORS = {
 
 type Props = {
   token: string;
+};
+
+type Usuario = {
+  id: string;
+  email?: string | null;
+  empresa?: string | null;
+  region?: string | null;
 };
 
 type Riesgo = {
@@ -65,7 +76,10 @@ function getMonthRange(monthKey: string) {
 
 export default function Dashboard({ token }: Props) {
   const [riesgos, setRiesgos] = useState<Riesgo[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [regionFiltro, setRegionFiltro] = useState("");
+  const [periodoFiltro, setPeriodoFiltro] = useState("todos");
   const [mesReporte, setMesReporte] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -73,35 +87,94 @@ export default function Dashboard({ token }: Props) {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    listarRiesgos(token)
-      .then(setRiesgos)
+    Promise.all([listarRiesgos(token), listarUsuarios(token)])
+      .then(([riesgosData, usuariosData]) => {
+        setRiesgos(riesgosData);
+        setUsuarios(usuariosData);
+      })
       .finally(() => setLoading(false));
   }, [token]);
+
+  const regionesDisponibles = useMemo(
+    () =>
+      Array.from(
+        new Set(usuarios.map((u) => u.region).filter(Boolean) as string[]),
+      ).sort((a, b) => a.localeCompare(b, "es")),
+    [usuarios],
+  );
+
+  const empresaPorEmail = useMemo(
+    () =>
+      usuarios.reduce<Record<string, string>>((acc, usuario) => {
+        if (usuario.email && usuario.empresa) {
+          acc[usuario.email] = usuario.empresa;
+        }
+        return acc;
+      }, {}),
+    [usuarios],
+  );
+
+  const riesgosFiltrados = useMemo(() => {
+    const now = new Date();
+
+    return riesgos.filter((riesgo) => {
+      if (regionFiltro && riesgo.region !== regionFiltro) {
+        return false;
+      }
+
+      if (periodoFiltro === "todos") {
+        return true;
+      }
+
+      const createdAt = new Date(riesgo.created_at);
+      const diffMs = now.getTime() - createdAt.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (periodoFiltro === "7d") {
+        return diffDays <= 7;
+      }
+
+      if (periodoFiltro === "30d") {
+        return diffDays <= 30;
+      }
+
+      if (periodoFiltro === "mes_actual") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      }
+
+      return true;
+    });
+  }, [periodoFiltro, regionFiltro, riesgos]);
 
   /* ======================
      MÉTRICAS
   ====================== */
 
-  const totalRiesgos = riesgos.length;
-  const riesgosActivos = riesgos.filter((r) => r.estado === "activo").length;
-  const riesgosResueltos = riesgos.filter(
+  const totalRiesgos = riesgosFiltrados.length;
+  const riesgosActivos = riesgosFiltrados.filter(
+    (r) => r.estado === "activo",
+  ).length;
+  const riesgosResueltos = riesgosFiltrados.filter(
     (r) => r.estado && r.estado !== "activo",
   ).length;
 
   const riesgosPorTipo = useMemo(() => {
     const map: Record<string, number> = {};
-    riesgos.forEach((r) => {
+    riesgosFiltrados.forEach((r) => {
       map[r.tipo] = (map[r.tipo] || 0) + 1;
     });
 
     return Object.entries(map)
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [riesgos]);
+  }, [riesgosFiltrados]);
 
   const riesgosPorMes = useMemo(() => {
     const map: Record<string, number> = {};
-    riesgos.forEach((r) => {
+    riesgosFiltrados.forEach((r) => {
       const monthKey = formatMonthKey(r.created_at);
       map[monthKey] = (map[monthKey] || 0) + 1;
     });
@@ -110,11 +183,11 @@ export default function Dashboard({ token }: Props) {
       .map(([mes, total]) => ({ mes, total }))
       .sort((a, b) => a.mes.localeCompare(b.mes))
       .slice(-6); // últimos 6 meses
-  }, [riesgos]);
+  }, [riesgosFiltrados]);
 
   const riesgosPorComuna = useMemo(() => {
     const map: Record<string, number> = {};
-    riesgos.forEach((r) => {
+    riesgosFiltrados.forEach((r) => {
       const comuna = r.comuna || r.region || "Sin comuna";
       map[comuna] = (map[comuna] || 0) + 1;
     });
@@ -122,7 +195,21 @@ export default function Dashboard({ token }: Props) {
     return Object.entries(map)
       .map(([comuna, total]) => ({ comuna, total }))
       .sort((a, b) => b.total - a.total);
-  }, [riesgos]);
+  }, [riesgosFiltrados]);
+
+  const riesgosPorEmpresa = useMemo(() => {
+    const map: Record<string, number> = {};
+    riesgosFiltrados.forEach((riesgo) => {
+      const empresa =
+        (riesgo.usuario_email && empresaPorEmail[riesgo.usuario_email]) ||
+        "Sin empresa";
+      map[empresa] = (map[empresa] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([empresa, total]) => ({ empresa, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [empresaPorEmail, riesgosFiltrados]);
 
   async function handleDescargarReporte() {
     try {
@@ -151,6 +238,43 @@ export default function Dashboard({ token }: Props) {
     <div className="page">
       <main className="main">
         <h2 style={{ marginTop: 0 }}>Dashboard</h2>
+
+        <div
+          className="card"
+          style={{
+            marginBottom: 24,
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <select
+            className="auth-input"
+            value={regionFiltro}
+            onChange={(e) => setRegionFiltro(e.target.value)}
+            style={{ maxWidth: 260 }}
+          >
+            <option value="">Todas las regiones</option>
+            {regionesDisponibles.map((region) => (
+              <option key={region} value={region}>
+                {region}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="auth-input"
+            value={periodoFiltro}
+            onChange={(e) => setPeriodoFiltro(e.target.value)}
+            style={{ maxWidth: 220 }}
+          >
+            <option value="todos">Todo el período</option>
+            <option value="7d">Últimos 7 días</option>
+            <option value="30d">Últimos 30 días</option>
+            <option value="mes_actual">Mes actual</option>
+          </select>
+        </div>
 
         {/* CARDS */}
         <div
@@ -282,6 +406,33 @@ export default function Dashboard({ token }: Props) {
             </div>
           )}
 
+        </div>
+
+        <div className="card" style={{ marginBottom: 24 }}>
+          <h4>Riesgos por empresa</h4>
+
+          {riesgosPorEmpresa.length === 0 ? (
+            <p>No hay datos</p>
+          ) : (
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer>
+                <BarChart data={riesgosPorEmpresa}>
+                  <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                  <XAxis dataKey="empresa" stroke={COLORS.text} />
+                  <YAxis stroke={COLORS.text} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#020617",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      borderRadius: 10,
+                      color: "#e5e7eb",
+                    }}
+                  />
+                  <Bar dataKey="total" fill={COLORS.success} radius={8} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* GRÁFICO POR MES */}
