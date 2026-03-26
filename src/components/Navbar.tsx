@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 type Page = "dashboard" | "riesgos" | "usuarios";
 
 type Props = {
@@ -7,22 +9,41 @@ type Props = {
 };
 
 export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [currentPage]);
+
+  function handleNavigate(page: Page) {
+    onNavigate(page);
+    setMenuOpen(false);
+  }
+
   return (
     <header className="navbar">
       <div className="navbar-left">
-        {/* MARCA */}
         <div className="navbar-brand">
           <div className="navbar-title">NEXO · Admin Panel</div>
           <div className="navbar-subtitle">Community Watch & Map</div>
         </div>
 
-        {/* MENU */}
-        <nav className="navbar-menu">
+        <button
+          type="button"
+          className="navbar-toggle"
+          aria-label="Abrir menú"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          ☰
+        </button>
+
+        <nav className={`navbar-menu ${menuOpen ? "open" : ""}`}>
           <button
             className={
               currentPage === "dashboard" ? "navbar-link active" : "navbar-link"
             }
-            onClick={() => onNavigate("dashboard")}
+            onClick={() => handleNavigate("dashboard")}
           >
             Dashboard
           </button>
@@ -31,7 +52,7 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
             className={
               currentPage === "riesgos" ? "navbar-link active" : "navbar-link"
             }
-            onClick={() => onNavigate("riesgos")}
+            onClick={() => handleNavigate("riesgos")}
           >
             Riesgos
           </button>
@@ -40,7 +61,7 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
             className={
               currentPage === "usuarios" ? "navbar-link active" : "navbar-link"
             }
-            onClick={() => onNavigate("usuarios")}
+            onClick={() => handleNavigate("usuarios")}
           >
             Usuarios
           </button>

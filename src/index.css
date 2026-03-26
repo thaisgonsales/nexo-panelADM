@@ -16,14 +16,17 @@ body {
   min-height: 100vh;
   color: #e5e7eb;
   font-weight: 400;
-
+  overflow-x: hidden;
   background-image:
     linear-gradient(rgba(2, 6, 23, 0.75), rgba(2, 6, 23, 0.85)),
     url("/src/assets/login-bg.mp4");
-
   background-size: cover;
   background-position: center;
   background-attachment: scroll;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 input,
@@ -32,8 +35,6 @@ textarea,
 button {
   font-size: 14px;
 }
-
-/* ===== TOAST ===== */
 
 .toast {
   position: fixed;
@@ -69,7 +70,6 @@ button {
   }
 }
 
-/* ===== VIDEO ===== */
 .login-video {
   position: absolute;
   inset: 0;
@@ -79,38 +79,29 @@ button {
   z-index: 0;
 }
 
-/* ===== OVERLAY PROFUNDO (LOGIN) ===== */
 .auth-container::before {
   content: "";
   position: absolute;
   inset: 0;
-
-  /* gradiente + escurecimento real */
   background: radial-gradient(
     circle at center,
     rgba(2, 6, 23, 0.692) 0%,
     rgba(2, 6, 23, 0.75) 55%,
     rgba(2, 6, 23, 0.92) 100%
   );
-
   z-index: 1;
 }
 
-/* ===== CARD SOBRE O VÍDEO (LOGIN) ===== */
 .auth-card {
   position: relative;
   z-index: 2;
-
   background: rgba(2, 6, 23, 0.849);
   border-radius: 22px;
   padding: 32px;
-
   width: 100%;
   max-width: 420px;
-
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(18px);
-
   box-shadow:
     0 25px 50px rgba(0, 0, 0, 0.65),
     inset 0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -132,30 +123,40 @@ button {
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
 }
 
-/* ===== SELECT DARK FIX ===== */
 select.auth-input {
   background-color: rgba(255, 255, 255, 0.12);
   color: #e5e7eb;
-
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;
-
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-
   padding-right: 36px;
 }
 
-/* options */
 select.auth-input option {
   background-color: #020617;
   color: #e5e7eb;
 }
 
-/* focus */
 select.auth-input:focus {
   outline: none;
   border-color: #22c55e;
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
+
+@media (max-width: 640px) {
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .auth-container {
+    padding: 16px;
+  }
+
+  .auth-card {
+    padding: 24px;
+  }
 }

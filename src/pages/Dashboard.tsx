@@ -49,7 +49,6 @@ type Riesgo = {
   estado?: "activo" | "resuelto" | string;
 };
 
-// Utils
 function formatMonthKey(date: string) {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -149,10 +148,6 @@ export default function Dashboard({ token }: Props) {
     });
   }, [periodoFiltro, regionFiltro, riesgos]);
 
-  /* ======================
-     MÉTRICAS
-  ====================== */
-
   const totalRiesgos = riesgosFiltrados.length;
   const riesgosActivos = riesgosFiltrados.filter(
     (r) => r.estado === "activo",
@@ -182,7 +177,7 @@ export default function Dashboard({ token }: Props) {
     return Object.entries(map)
       .map(([mes, total]) => ({ mes, total }))
       .sort((a, b) => a.mes.localeCompare(b.mes))
-      .slice(-6); // últimos 6 meses
+      .slice(-6);
   }, [riesgosFiltrados]);
 
   const riesgosPorComuna = useMemo(() => {
@@ -223,7 +218,6 @@ export default function Dashboard({ token }: Props) {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // eslint-disable-next-line no-alert
       alert("No se pudo generar el reporte");
     } finally {
       setDownloading(false);
@@ -237,253 +231,226 @@ export default function Dashboard({ token }: Props) {
   return (
     <div className="page">
       <main className="main">
-        <h2 style={{ marginTop: 0 }}>Dashboard</h2>
+        <section className="page-section">
+          <h2 className="page-title">Dashboard</h2>
 
-        <div
-          className="card"
-          style={{
-            marginBottom: 24,
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <select
-            className="auth-input"
-            value={regionFiltro}
-            onChange={(e) => setRegionFiltro(e.target.value)}
-            style={{ maxWidth: 260 }}
-          >
-            <option value="">Todas las regiones</option>
-            {regionesDisponibles.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
-            ))}
-          </select>
+          <div className="card toolbar-card">
+            <div className="toolbar-grid">
+              <select
+                className="auth-input"
+                value={regionFiltro}
+                onChange={(e) => setRegionFiltro(e.target.value)}
+              >
+                <option value="">Todas las regiones</option>
+                {regionesDisponibles.map((region) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
 
-          <select
-            className="auth-input"
-            value={periodoFiltro}
-            onChange={(e) => setPeriodoFiltro(e.target.value)}
-            style={{ maxWidth: 220 }}
-          >
-            <option value="todos">Todo el período</option>
-            <option value="7d">Últimos 7 días</option>
-            <option value="30d">Últimos 30 días</option>
-            <option value="mes_actual">Mes actual</option>
-          </select>
-        </div>
-
-        {/* CARDS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-            marginBottom: 24,
-          }}
-        >
-          <div
-            className="card"
-            style={{ borderLeft: `6px solid ${COLORS.primary}` }}
-          >
-            <h4>Total de riesgos</h4>
-            <p style={{ fontSize: 36, margin: 0, fontWeight: 700 }}>
-              {totalRiesgos}
-            </p>
-            <small style={{ color: "#6b7280" }}>Registros totales</small>
+              <select
+                className="auth-input"
+                value={periodoFiltro}
+                onChange={(e) => setPeriodoFiltro(e.target.value)}
+              >
+                <option value="todos">Todo el período</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+                <option value="mes_actual">Mes actual</option>
+              </select>
+            </div>
           </div>
 
-          {riesgosPorTipo[0] && (
+          <div className="stats-grid">
             <div
-              className="card"
-              style={{ borderLeft: `6px solid ${COLORS.warning}` }}
+              className="card metric-card"
+              style={{ borderLeft: `6px solid ${COLORS.primary}` }}
             >
-              <h4>Riesgo más común</h4>
-              <p style={{ fontSize: 20, margin: "8px 0", fontWeight: 600 }}>
-                {riesgosPorTipo[0].tipo}
+              <h4>Total de riesgos</h4>
+              <p style={{ fontSize: 36, margin: 0, fontWeight: 700 }}>
+                {totalRiesgos}
               </p>
-              <small style={{ color: "#6b7280" }}>
-                {riesgosPorTipo[0].total} registros
-              </small>
+              <small style={{ color: "#6b7280" }}>Registros totales</small>
             </div>
-          )}
 
-          <div
-            className="card"
-            style={{ borderLeft: `6px solid ${COLORS.success}` }}
-          >
-            <h4>Estado de riesgos</h4>
-            <p style={{ margin: "8px 0 0", fontWeight: 600 }}>
-              Activos: {riesgosActivos} · Resueltos: {riesgosResueltos}
-            </p>
+            {riesgosPorTipo[0] && (
+              <div
+                className="card metric-card"
+                style={{ borderLeft: `6px solid ${COLORS.warning}` }}
+              >
+                <h4>Riesgo más común</h4>
+                <p style={{ fontSize: 20, margin: "8px 0", fontWeight: 600 }}>
+                  {riesgosPorTipo[0].tipo}
+                </p>
+                <small style={{ color: "#6b7280" }}>
+                  {riesgosPorTipo[0].total} registros
+                </small>
+              </div>
+            )}
+
             <div
-              style={{
-                marginTop: 8,
-                height: 8,
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.1)",
-                overflow: "hidden",
-              }}
+              className="card metric-card"
+              style={{ borderLeft: `6px solid ${COLORS.success}` }}
             >
+              <h4>Estado de riesgos</h4>
+              <p style={{ margin: "8px 0 0", fontWeight: 600 }}>
+                Activos: {riesgosActivos} · Resueltos: {riesgosResueltos}
+              </p>
               <div
                 style={{
-                  width:
-                    totalRiesgos === 0
-                      ? "0%"
-                      : `${Math.round((riesgosActivos / totalRiesgos) * 100)}%`,
-                  height: "100%",
-                  background: COLORS.success,
+                  marginTop: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.1)",
+                  overflow: "hidden",
                 }}
+              >
+                <div
+                  style={{
+                    width:
+                      totalRiesgos === 0
+                        ? "0%"
+                        : `${Math.round((riesgosActivos / totalRiesgos) * 100)}%`,
+                    height: "100%",
+                    background: COLORS.success,
+                  }}
+                />
+              </div>
+              <small style={{ color: "#6b7280" }}>
+                {totalRiesgos === 0
+                  ? "Sin registros"
+                  : `${Math.round((riesgosResueltos / totalRiesgos) * 100)}% resueltos`}
+              </small>
+            </div>
+          </div>
+
+          <div className="chart-grid">
+            <div className="card chart-card">
+              <h4>Riesgos por tipo</h4>
+              {riesgosPorTipo.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box chart-box-tall">
+                  <ResponsiveContainer>
+                    <BarChart data={riesgosPorTipo}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis dataKey="tipo" stroke={COLORS.text} />
+                      <YAxis stroke={COLORS.text} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#020617",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: 10,
+                          color: "#e5e7eb",
+                        }}
+                      />
+                      <Bar dataKey="total" fill={COLORS.primary} radius={8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>Riesgos por comuna</h4>
+              {riesgosPorComuna.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box">
+                  <ResponsiveContainer>
+                    <BarChart data={riesgosPorComuna}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis dataKey="comuna" stroke={COLORS.text} />
+                      <YAxis stroke={COLORS.text} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#020617",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: 10,
+                          color: "#e5e7eb",
+                        }}
+                      />
+                      <Bar dataKey="total" fill={COLORS.warning} radius={8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>Riesgos por empresa</h4>
+              {riesgosPorEmpresa.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box">
+                  <ResponsiveContainer>
+                    <BarChart data={riesgosPorEmpresa}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis dataKey="empresa" stroke={COLORS.text} />
+                      <YAxis stroke={COLORS.text} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#020617",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: 10,
+                          color: "#e5e7eb",
+                        }}
+                      />
+                      <Bar dataKey="total" fill={COLORS.success} radius={8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>Evolución mensual de registros</h4>
+              {riesgosPorMes.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box">
+                  <ResponsiveContainer>
+                    <LineChart data={riesgosPorMes}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis dataKey="mes" tickFormatter={formatMonthCL} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke={COLORS.danger}
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card report-card">
+            <h4>Reporte mensual (PDF)</h4>
+            <div className="report-actions">
+              <input
+                type="month"
+                value={mesReporte}
+                onChange={(e) => setMesReporte(e.target.value)}
+                className="auth-input"
               />
+              <button
+                className="auth-button"
+                onClick={handleDescargarReporte}
+                disabled={downloading}
+              >
+                {downloading ? "Generando…" : "Generar reporte mensual"}
+              </button>
             </div>
-            <small style={{ color: "#6b7280" }}>
-              {totalRiesgos === 0
-                ? "Sin registros"
-                : `${Math.round((riesgosResueltos / totalRiesgos) * 100)}% resueltos`}
-            </small>
           </div>
-        </div>
-
-        {/* GRÁFICO POR TIPO */}
-        <div className="card" style={{ marginBottom: 24 }}>
-          <h4>Riesgos por tipo</h4>
-
-          {riesgosPorTipo.length === 0 ? (
-            <p>No hay datos</p>
-          ) : (
-            <div style={{ width: "100%", height: 340 }}>
-              <ResponsiveContainer>
-                <BarChart data={riesgosPorTipo}>
-                  <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-
-                  <XAxis dataKey="tipo" stroke={COLORS.text} />
-                  <YAxis stroke={COLORS.text} />
-
-                  <Tooltip
-                    contentStyle={{
-                      background: "#020617",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: 10,
-                      color: "#e5e7eb",
-                    }}
-                  />
-
-                  {/* 👇 ISSO É O MAIS IMPORTANTE */}
-                  <Bar dataKey="total" fill={COLORS.primary} radius={8} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* GRÁFICO POR COMUNA */}
-        <div className="card" style={{ marginBottom: 24 }}>
-          <h4>Riesgos por comuna</h4>
-
-          {riesgosPorComuna.length === 0 ? (
-            <p>No hay datos</p>
-          ) : (
-            <div style={{ width: "100%", height: 320 }}>
-              <ResponsiveContainer>
-                <BarChart data={riesgosPorComuna}>
-                  <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="comuna" stroke={COLORS.text} />
-                  <YAxis stroke={COLORS.text} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#020617",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: 10,
-                      color: "#e5e7eb",
-                    }}
-                  />
-                  <Bar dataKey="total" fill={COLORS.warning} radius={8} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-        </div>
-
-        <div className="card" style={{ marginBottom: 24 }}>
-          <h4>Riesgos por empresa</h4>
-
-          {riesgosPorEmpresa.length === 0 ? (
-            <p>No hay datos</p>
-          ) : (
-            <div style={{ width: "100%", height: 320 }}>
-              <ResponsiveContainer>
-                <BarChart data={riesgosPorEmpresa}>
-                  <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="empresa" stroke={COLORS.text} />
-                  <YAxis stroke={COLORS.text} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#020617",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: 10,
-                      color: "#e5e7eb",
-                    }}
-                  />
-                  <Bar dataKey="total" fill={COLORS.success} radius={8} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* GRÁFICO POR MES */}
-        <div className="card">
-          <h4>Evolución mensual de registros</h4>
-
-          {riesgosPorMes.length === 0 ? (
-            <p>No hay datos</p>
-          ) : (
-            <div style={{ width: "100%", height: 320 }}>
-              <ResponsiveContainer>
-                <LineChart data={riesgosPorMes}>
-                  <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tickFormatter={formatMonthCL} />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    stroke={COLORS.danger}
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-        </div>
-
-        {/* REPORTE PDF */}
-        <div className="card" style={{ marginTop: 24 }}>
-          <h4>Reporte mensual (PDF)</h4>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <input
-              type="month"
-              value={mesReporte}
-              onChange={(e) => setMesReporte(e.target.value)}
-              className="auth-input"
-              style={{ maxWidth: 220 }}
-            />
-            <button
-              className="auth-button"
-              onClick={handleDescargarReporte}
-              disabled={downloading}
-            >
-              {downloading ? "Generando…" : "Generar reporte mensual"}
-            </button>
-          </div>
-        </div>
+        </section>
       </main>
     </div>
   );
 }
+

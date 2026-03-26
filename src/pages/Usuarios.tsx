@@ -29,8 +29,6 @@ export default function Usuarios({ token }: Props) {
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // crear usuario
   const [nombre, setNombre] = useState("");
   const [rut, setRut] = useState("");
   const [email, setEmail] = useState("");
@@ -39,8 +37,6 @@ export default function Usuarios({ token }: Props) {
   const [empresa, setEmpresa] = useState("");
   const [region, setRegion] = useState("");
   const [active, setActive] = useState(true);
-
-  // reset contraseña
   const [usuarioReset, setUsuarioReset] = useState<Usuario | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
@@ -79,20 +75,12 @@ export default function Usuarios({ token }: Props) {
 
     const body = clean.slice(0, -1);
     const dv = clean.slice(-1);
-
     const withDots = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return `${withDots}-${dv}`;
   }
 
   async function handleCrearUsuario() {
-    if (
-      !nombre ||
-      !rut ||
-      !email ||
-      !password ||
-      !empresa ||
-      !region
-    ) {
+    if (!nombre || !rut || !email || !password || !empresa || !region) {
       showToast(
         "Nombre, RUT, correo, contraseña, empresa y región son obligatorios",
         "error",
@@ -118,8 +106,6 @@ export default function Usuarios({ token }: Props) {
       });
 
       showToast("Usuario creado correctamente", "success");
-
-      // limpiar formulario
       setNombre("");
       setRut("");
       setEmail("");
@@ -145,9 +131,7 @@ export default function Usuarios({ token }: Props) {
 
     try {
       await resetearPassword(token, usuarioReset.id, newPassword);
-
       showToast("Contraseña actualizada correctamente", "success");
-
       setUsuarioReset(null);
       setNewPassword("");
     } catch {
@@ -164,7 +148,6 @@ export default function Usuarios({ token }: Props) {
 
     try {
       await eliminarUsuario(token, user.id);
-
       setUsuarios((prev) => prev.filter((u) => u.id !== user.id));
       showToast("Usuario eliminado", "success");
     } catch {
@@ -173,21 +156,15 @@ export default function Usuarios({ token }: Props) {
   }
 
   async function handleToggleActivo(user: Usuario) {
-    const isActive =
-      typeof user.active === "number" ? user.active === 1 : !!user.active;
+    const isActive = typeof user.active === "number" ? user.active === 1 : !!user.active;
     const nextActive = !isActive;
 
     try {
       await setUsuarioActivo(token, user.id, nextActive);
       setUsuarios((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, active: nextActive ? 1 : 0 } : u,
-        ),
+        prev.map((u) => (u.id === user.id ? { ...u, active: nextActive ? 1 : 0 } : u)),
       );
-      showToast(
-        nextActive ? "Usuario activado" : "Usuario desactivado",
-        "success",
-      );
+      showToast(nextActive ? "Usuario activado" : "Usuario desactivado", "success");
     } catch {
       showToast("No se pudo actualizar el estado", "error");
     }
@@ -202,174 +179,175 @@ export default function Usuarios({ token }: Props) {
   return (
     <div className="page">
       <main className="main">
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Usuarios</h2>
+        <section className="page-section">
+          <div className="card">
+            <h2 className="page-title">Usuarios</h2>
 
-          {/* CREAR USUARIO */}
-          <div style={{ marginBottom: 24 }}>
-            <h3>Crear usuario</h3>
+            <div className="form-section">
+              <h3>Crear usuario</h3>
 
-            <input
-              placeholder="Nombre completo"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="auth-input"
-            />
+              <div className="form-grid">
+                <input
+                  placeholder="Nombre completo"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="auth-input"
+                />
 
-            <input
-              placeholder="RUT"
-              value={rut}
-              onChange={(e) => setRut(e.target.value)}
-              onBlur={() => setRut(formatearRut(rut))}
-              className="auth-input"
-            />
+                <input
+                  placeholder="RUT"
+                  value={rut}
+                  onChange={(e) => setRut(e.target.value)}
+                  onBlur={() => setRut(formatearRut(rut))}
+                  className="auth-input"
+                />
 
-            <input
-              placeholder="Correo electrónico o usuario"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="auth-input"
-            />
+                <input
+                  placeholder="Correo electrónico o usuario"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="auth-input"
+                />
 
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="auth-input"
-            />
+                <input
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="auth-input"
+                />
 
-            <input
-              placeholder="Empresa"
-              value={empresa}
-              onChange={(e) => setEmpresa(e.target.value)}
-              className="auth-input"
-            />
+                <input
+                  placeholder="Empresa"
+                  value={empresa}
+                  onChange={(e) => setEmpresa(e.target.value)}
+                  className="auth-input"
+                />
 
-            <select
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              className="auth-input"
-            >
-              <option value="">Seleccione región / zona</option>
-              <option value="Chiloé">Chiloé</option>
-              <option value="Valdivia">Valdivia</option>
-            </select>
+                <select
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  className="auth-input"
+                >
+                  <option value="">Seleccione región / zona</option>
+                  <option value="Chiloé">Chiloé</option>
+                  <option value="Valdivia">Valdivia</option>
+                </select>
 
-            <select
-              value={rol}
-              onChange={(e) => setRol(e.target.value as "admin" | "user")}
-              className="auth-input"
-            >
-              <option value="user">Usuario</option>
-              <option value="admin">Administrador</option>
-            </select>
+                <select
+                  value={rol}
+                  onChange={(e) => setRol(e.target.value as "admin" | "user")}
+                  className="auth-input"
+                >
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                </select>
 
-            <select
-              value={active ? "1" : "0"}
-              onChange={(e) => setActive(e.target.value === "1")}
-              className="auth-input"
-            >
-              <option value="1">Activo</option>
-              <option value="0">Inactivo</option>
-            </select>
+                <select
+                  value={active ? "1" : "0"}
+                  onChange={(e) => setActive(e.target.value === "1")}
+                  className="auth-input"
+                >
+                  <option value="1">Activo</option>
+                  <option value="0">Inactivo</option>
+                </select>
+              </div>
 
-            <button className="auth-button" onClick={handleCrearUsuario}>
-              Crear usuario
-            </button>
-          </div>
+              <button className="auth-button form-submit" onClick={handleCrearUsuario}>
+                Crear usuario
+              </button>
+            </div>
 
-          {/* LISTA */}
-          {loading && <p>Cargando usuarios…</p>}
+            {loading && <p>Cargando usuarios…</p>}
 
-          {!loading && usuarios.length === 0 && (
-            <p>No hay usuarios registrados</p>
-          )}
+            {!loading && usuarios.length === 0 && <p>No hay usuarios registrados</p>}
 
-          {!loading && usuarios.length > 0 && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>RUT</th>
-                  <th>Usuario</th>
-                  <th>Empresa</th>
-                  <th>Región</th>
-                  <th>Estado</th>
-                  <th>Rol</th>
-                  <th>Fecha creación</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuarios.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.nombre || "-"}</td>
-                    <td>{u.rut ? formatearRut(u.rut) : "-"}</td>
-                    <td>{u.email}</td>
-                    <td>{u.empresa || "-"}</td>
-                    <td>{u.region || "-"}</td>
-                    <td>
-                      {typeof u.active === "number"
-                        ? u.active === 1
-                          ? "Activo"
-                          : "Inactivo"
-                        : u.active
-                          ? "Activo"
-                          : "Inactivo"}
-                    </td>
-                    <td>{u.rol}</td>
-                    <td>{new Date(u.created_at).toLocaleString("es-CL")}</td>
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          className="btn-icon btn-edit"
-                          title={
-                            typeof u.active === "number"
-                              ? u.active === 1
-                                ? "Desactivar"
-                                : "Activar"
-                              : u.active
-                                ? "Desactivar"
-                                : "Activar"
-                          }
-                          onClick={() => handleToggleActivo(u)}
-                        >
+            {!loading && usuarios.length > 0 && (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>RUT</th>
+                      <th>Usuario</th>
+                      <th>Empresa</th>
+                      <th>Región</th>
+                      <th>Estado</th>
+                      <th>Rol</th>
+                      <th>Fecha creación</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usuarios.map((u) => (
+                      <tr key={u.id}>
+                        <td>{u.nombre || "-"}</td>
+                        <td>{u.rut ? formatearRut(u.rut) : "-"}</td>
+                        <td>{u.email}</td>
+                        <td>{u.empresa || "-"}</td>
+                        <td>{u.region || "-"}</td>
+                        <td>
                           {typeof u.active === "number"
                             ? u.active === 1
-                              ? "⏸️"
-                              : "▶️"
+                              ? "Activo"
+                              : "Inactivo"
                             : u.active
-                              ? "⏸️"
-                              : "▶️"}
-                        </button>
+                              ? "Activo"
+                              : "Inactivo"}
+                        </td>
+                        <td>{u.rol}</td>
+                        <td>{new Date(u.created_at).toLocaleString("es-CL")}</td>
+                        <td>
+                          <div className="table-actions table-actions-wrap">
+                            <button
+                              className="btn-icon btn-edit"
+                              title={
+                                typeof u.active === "number"
+                                  ? u.active === 1
+                                    ? "Desactivar"
+                                    : "Activar"
+                                  : u.active
+                                    ? "Desactivar"
+                                    : "Activar"
+                              }
+                              onClick={() => handleToggleActivo(u)}
+                            >
+                              {typeof u.active === "number"
+                                ? u.active === 1
+                                  ? "⏸️"
+                                  : "▶️"
+                                : u.active
+                                  ? "⏸️"
+                                  : "▶️"}
+                            </button>
 
-                        <button
-                          className="btn-icon btn-edit"
-                          title="Resetear contraseña"
-                          onClick={() => setUsuarioReset(u)}
-                        >
-                          🔑
-                        </button>
+                            <button
+                              className="btn-icon btn-edit"
+                              title="Resetear contraseña"
+                              onClick={() => setUsuarioReset(u)}
+                            >
+                              🔑
+                            </button>
 
-                        <button
-                          className="btn-icon btn-delete"
-                          title="Eliminar usuario"
-                          onClick={() => handleEliminarUsuario(u)}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                            <button
+                              className="btn-icon btn-delete"
+                              title="Eliminar usuario"
+                              onClick={() => handleEliminarUsuario(u)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
-      {/* MODAL RESET */}
       {usuarioReset && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -396,11 +374,7 @@ export default function Usuarios({ token }: Props) {
                 Cancelar
               </button>
 
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleResetPassword}
-              >
+              <button type="button" className="btn-primary" onClick={handleResetPassword}>
                 Guardar
               </button>
             </div>

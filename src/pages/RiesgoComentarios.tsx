@@ -58,58 +58,65 @@ export default function RiesgoComentarios({ token, riesgoId }: Props) {
     return parts.length > 0 ? parts.join(" • ") : comentario.usuario;
   }
 
+  function formatFecha(fecha: string) {
+    return new Date(fecha).toLocaleString("es-CL", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }
+
   if (loading) {
     return <p>Cargando comentarios…</p>;
   }
 
   return (
-    <div style={{ marginTop: 12 }}>
-      {/* 🗨️ COMENTARIOS */}
+    <div className="comment-section">
       <h4>Comentarios</h4>
 
       {comentarios.length === 0 ? (
-        <p>No hay comentarios</p>
+        <p className="comment-empty">No hay comentarios</p>
       ) : (
-        comentarios.map((c) => (
-          <div key={c.id} className="comment-box">
-            <strong>{getUsuarioLabel(c)}</strong>
-            <p>{c.texto}</p>
-          </div>
-        ))
+        <div className="comment-list">
+          {comentarios.map((c) => (
+            <article key={c.id} className="comment-card">
+              <div className="comment-header">
+                <strong className="comment-author">{getUsuarioLabel(c)}</strong>
+                <span className="comment-date">{formatFecha(c.created_at)}</span>
+              </div>
+              <p className="comment-text">{c.texto}</p>
+            </article>
+          ))}
+        </div>
       )}
 
-      {/* 🚨 REPORTES */}
-      <h4 style={{ marginTop: 16 }}>Reportes</h4>
+      <h4 style={{ marginTop: 20 }}>Reportes</h4>
 
       {reportes.length === 0 ? (
-        <p>No hay reportes</p>
+        <p className="comment-empty">No hay reportes</p>
       ) : (
-        reportes.map((r) => (
-          <div
-            key={r.id}
-            style={{
-              background: "#4b4948",
-              border: "2px solid #facc15",
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 10,
-            }}
-          >
-            <strong>{getUsuarioLabel(r)}</strong>
-            <p>{r.texto}</p>
+        <div className="comment-list">
+          {reportes.map((r) => (
+            <article key={r.id} className="comment-card report-card-item">
+              <div className="comment-header">
+                <strong className="comment-author">{getUsuarioLabel(r)}</strong>
+                <span className="comment-date">{formatFecha(r.created_at)}</span>
+              </div>
 
-            <button
-              className="btn-icon btn-delete"
-              onClick={async () => {
-                if (!confirm("¿Eliminar este reporte?")) return;
-                await eliminarReporte(token, r.id);
-                setReportes((prev) => prev.filter((x) => x.id !== r.id));
-              }}
-            >
-              🗑️ Eliminar reporte
-            </button>
-          </div>
-        ))
+              <p className="comment-text">{r.texto}</p>
+
+              <button
+                className="btn-icon btn-delete comment-delete-button"
+                onClick={async () => {
+                  if (!confirm("¿Eliminar este reporte?")) return;
+                  await eliminarReporte(token, r.id);
+                  setReportes((prev) => prev.filter((x) => x.id !== r.id));
+                }}
+              >
+                🗑️ Eliminar reporte
+              </button>
+            </article>
+          ))}
+        </div>
       )}
     </div>
   );
