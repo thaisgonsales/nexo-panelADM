@@ -77,7 +77,6 @@ export default function Dashboard({ token }: Props) {
   const [riesgos, setRiesgos] = useState<Riesgo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [regionFiltro, setRegionFiltro] = useState("");
   const [periodoFiltro, setPeriodoFiltro] = useState("todos");
   const [mesReporte, setMesReporte] = useState(() => {
     const now = new Date();
@@ -94,14 +93,6 @@ export default function Dashboard({ token }: Props) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const regionesDisponibles = useMemo(
-    () =>
-      Array.from(
-        new Set(usuarios.map((u) => u.region).filter(Boolean) as string[]),
-      ).sort((a, b) => a.localeCompare(b, "es")),
-    [usuarios],
-  );
-
   const empresaPorEmail = useMemo(
     () =>
       usuarios.reduce<Record<string, string>>((acc, usuario) => {
@@ -117,10 +108,6 @@ export default function Dashboard({ token }: Props) {
     const now = new Date();
 
     return riesgos.filter((riesgo) => {
-      if (regionFiltro && riesgo.region !== regionFiltro) {
-        return false;
-      }
-
       if (periodoFiltro === "todos") {
         return true;
       }
@@ -146,7 +133,7 @@ export default function Dashboard({ token }: Props) {
 
       return true;
     });
-  }, [periodoFiltro, regionFiltro, riesgos]);
+  }, [periodoFiltro, riesgos]);
 
   const totalRiesgos = riesgosFiltrados.length;
   const riesgosActivos = riesgosFiltrados.filter(
@@ -236,19 +223,6 @@ export default function Dashboard({ token }: Props) {
 
           <div className="card toolbar-card">
             <div className="toolbar-grid">
-              <select
-                className="auth-input"
-                value={regionFiltro}
-                onChange={(e) => setRegionFiltro(e.target.value)}
-              >
-                <option value="">Todas las regiones</option>
-                {regionesDisponibles.map((region) => (
-                  <option key={region} value={region}>
-                    {region}
-                  </option>
-                ))}
-              </select>
-
               <select
                 className="auth-input"
                 value={periodoFiltro}
@@ -453,4 +427,3 @@ export default function Dashboard({ token }: Props) {
     </div>
   );
 }
-

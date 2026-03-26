@@ -71,7 +71,6 @@ export default function Riesgos({ token }: Props) {
   const [loading, setLoading] = useState(true);
   const [riesgoAbierto, setRiesgoAbierto] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState("");
-  const [regionFiltro, setRegionFiltro] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
@@ -91,14 +90,6 @@ export default function Riesgos({ token }: Props) {
     });
     return map;
   }, [usuarios]);
-
-  const regionesDisponibles = useMemo(
-    () =>
-      Array.from(
-        new Set(usuarios.map((u) => u.region).filter(Boolean) as string[]),
-      ).sort((a, b) => a.localeCompare(b, "es")),
-    [usuarios],
-  );
 
   const usuariosDisponibles = useMemo(
     () =>
@@ -136,7 +127,6 @@ export default function Riesgos({ token }: Props) {
 
   function limpiarFiltros() {
     setUsuarioId("");
-    setRegionFiltro("");
     setEstadoFiltro("");
     setBusqueda("");
     setFechaDesde("");
@@ -151,7 +141,6 @@ export default function Riesgos({ token }: Props) {
 
     listarRiesgos(token, {
       userId: usuarioId || undefined,
-      region: regionFiltro || undefined,
       from: fechaDesde || undefined,
       to: fechaHasta || undefined,
     })
@@ -171,14 +160,13 @@ export default function Riesgos({ token }: Props) {
     const interval = setInterval(() => {
       listarRiesgos(token, {
         userId: usuarioId || undefined,
-        region: regionFiltro || undefined,
         from: fechaDesde || undefined,
         to: fechaHasta || undefined,
       }).then(setRiesgos);
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [token, usuarioId, regionFiltro, fechaDesde, fechaHasta]);
+  }, [token, usuarioId, fechaDesde, fechaHasta]);
 
   const riesgosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -244,7 +232,6 @@ export default function Riesgos({ token }: Props) {
 
   const filtrosActivos = [
     usuarioId ? `Usuario: ${usuariosDisponibles.find((u) => u.id === usuarioId)?.label || "seleccionado"}` : null,
-    regionFiltro ? `Región: ${regionFiltro}` : null,
     estadoFiltro ? `Estado: ${estadoFiltro}` : null,
     fechaDesde ? `Desde: ${fechaDesde}` : null,
     fechaHasta ? `Hasta: ${fechaHasta}` : null,
@@ -254,7 +241,7 @@ export default function Riesgos({ token }: Props) {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [busqueda, estadoFiltro, orden, usuarioId, regionFiltro, fechaDesde, fechaHasta]);
+  }, [busqueda, estadoFiltro, orden, usuarioId, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     if (paginaActual > totalPaginas) {
@@ -362,7 +349,7 @@ export default function Riesgos({ token }: Props) {
               <div className="risk-toolbar-head">
                 <div>
                   <h3 className="risk-toolbar-title">Filtros y búsqueda</h3>
-                  <p className="risk-toolbar-copy">Refina la vista por responsable, región, estado, fechas o texto libre.</p>
+                  <p className="risk-toolbar-copy">Refina la vista por responsable, estado, fechas o texto libre.</p>
                 </div>
                 <div className="risk-toolbar-actions">
                   <button className="btn-filter primary" onClick={cargarRiesgos}>
@@ -392,19 +379,6 @@ export default function Riesgos({ token }: Props) {
                   {usuariosDisponibles.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.label}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="filter-input"
-                  value={regionFiltro}
-                  onChange={(e) => setRegionFiltro(e.target.value)}
-                >
-                  <option value="">Todas las regiones</option>
-                  {regionesDisponibles.map((region) => (
-                    <option key={region} value={region}>
-                      {region}
                     </option>
                   ))}
                 </select>
@@ -724,4 +698,3 @@ export default function Riesgos({ token }: Props) {
     </div>
   );
 }
-
