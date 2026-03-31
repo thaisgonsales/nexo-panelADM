@@ -1,5 +1,4 @@
-const API_URL = "https://app-riscos-backend-production-c2c8.up.railway.app";
-//const API_URL = "http://192.168.1.29:3000";
+const API_URL = localStorage.getItem("panel_api_url") || "https://app-riscos-backend-production-c2c8.up.railway.app";
 
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_URL}/login`, {
@@ -177,14 +176,11 @@ export async function eliminarUsuario(token: string, userId: string) {
 }
 
 export async function listarReportesPorRiesgo(token: string, riesgoId: string) {
-  const res = await fetch(
-    `${API_URL}/admin/riesgos/${riesgoId}/reportes`, // ✅ rota correta
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const res = await fetch(`${API_URL}/admin/riesgos/${riesgoId}/reportes`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  );
+  });
 
   if (!res.ok) {
     throw new Error("Error al obtener reportes");
@@ -222,7 +218,6 @@ export async function listarReportes(token: string, riesgoId: string) {
   return res.json();
 }
 
-// 👇 COMENTÁRIOS NORMAIS DO RIESGO (PANEL ADMIN)
 export async function listarComentariosPorRiesgo(
   token: string,
   riesgoId: string,
@@ -272,4 +267,54 @@ export async function descargarReporteMensual(
   }
 
   return res.blob();
+}
+
+export type SosItem = {
+  id: string;
+  motivo: string;
+  descripcion?: string | null;
+  latitude: number;
+  longitude: number;
+  estado: "pendiente" | "revisado" | "atendido" | string;
+  created_at: string;
+  user_id?: string | null;
+  usuario_email?: string | null;
+  usuario_nombre?: string | null;
+  empresa?: string | null;
+  region?: string | null;
+};
+
+export async function listarSos(token: string) {
+  const res = await fetch(`${API_URL}/admin/sos`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al obtener SOS");
+  }
+
+  return (await res.json()) as SosItem[];
+}
+
+export async function actualizarEstadoSos(
+  token: string,
+  sosId: string,
+  estado: "pendiente" | "revisado" | "atendido",
+) {
+  const res = await fetch(`${API_URL}/admin/sos/${sosId}/estado`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ estado }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al actualizar SOS");
+  }
+
+  return res.json();
 }

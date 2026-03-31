@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   descargarReporteMensual,
   listarRiesgos,
+  listarSos,
   listarUsuarios,
+  SosItem,
 } from "../services/api";
 import {
   BarChart,
@@ -23,6 +25,7 @@ const COLORS = {
   danger: "#f97316",
   grid: "rgba(255,255,255,0.15)",
   text: "#e5e7eb",
+  sos: "#fb7185",
 };
 
 type Props = {
@@ -73,9 +76,16 @@ function getMonthRange(monthKey: string) {
   return { from, to };
 }
 
+function getLatestMonthKey(dates: string[]) {
+  const valid = dates.filter(Boolean).sort();
+  const latest = valid[valid.length - 1];
+  return latest ? latest.slice(0, 7) : null;
+}
+
 export default function Dashboard({ token }: Props) {
   const [riesgos, setRiesgos] = useState<Riesgo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [sosItems, setSosItems] = useState<SosItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodoFiltro, setPeriodoFiltro] = useState("todos");
   const [mesReporte, setMesReporte] = useState(() => {
@@ -85,10 +95,20 @@ export default function Dashboard({ token }: Props) {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    Promise.all([listarRiesgos(token), listarUsuarios(token)])
-      .then(([riesgosData, usuariosData]) => {
+    Promise.all([listarRiesgos(token), listarUsuarios(token), listarSos(token)])
+      .then(([riesgosData, usuariosData, sosData]) => {
         setRiesgos(riesgosData);
         setUsuarios(usuariosData);
+        setSosItems(sosData);
+
+        const latestMonth = getLatestMonthKey([
+          ...riesgosData.map((item: Riesgo) => item.created_at),
+          ...sosData.map((item: SosItem) => item.created_at),
+        ]);
+
+        if (latestMonth) {
+          setMesReporte(latestMonth);
+        }
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -135,6 +155,37 @@ export default function Dashboard({ token }: Props) {
     });
   }, [periodoFiltro, riesgos]);
 
+  const sosFiltrados = useMemo(() => {
+    const now = new Date();
+
+    return sosItems.filter((item) => {
+      if (periodoFiltro === "todos") {
+        return true;
+      }
+
+      const createdAt = new Date(item.created_at);
+      const diffMs = now.getTime() - createdAt.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (periodoFiltro === "7d") {
+        return diffDays <= 7;
+      }
+
+      if (periodoFiltro === "30d") {
+        return diffDays <= 30;
+      }
+
+      if (periodoFiltro === "mes_actual") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      }
+
+      return true;
+    });
+  }, [periodoFiltro, sosItems]);
+
   const totalRiesgos = riesgosFiltrados.length;
   const riesgosActivos = riesgosFiltrados.filter(
     (r) => r.estado === "activo",
@@ -142,6 +193,11 @@ export default function Dashboard({ token }: Props) {
   const riesgosResueltos = riesgosFiltrados.filter(
     (r) => r.estado && r.estado !== "activo",
   ).length;
+
+  const totalSos = sosFiltrados.length;
+  const sosPendientes = sosFiltrados.filter((item) => item.estado === "pendiente").length;
+  const sosRevisados = sosFiltrados.filter((item) => item.estado === "revisado").length;
+  const sosAtendidos = sosFiltrados.filter((item) => item.estado === "atendido").length;
 
   const riesgosPorTipo = useMemo(() => {
     const map: Record<string, number> = {};
@@ -153,6 +209,17 @@ export default function Dashboard({ token }: Props) {
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
   }, [riesgosFiltrados]);
+
+  const sosPorMotivo = useMemo(() => {
+    const map: Record<string, number> = {};
+    sosFiltrados.forEach((item) => {
+      map[item.motivo] = (map[item.motivo] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([motivo, total]) => ({ motivo, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [sosFiltrados]);
 
   const riesgosPorMes = useMemo(() => {
     const map: Record<string, number> = {};
@@ -248,6 +315,19 @@ export default function Dashboard({ token }: Props) {
               <small style={{ color: "#6b7280" }}>Registros totales</small>
             </div>
 
+            <div
+              className="card metric-card"
+              style={{ borderLeft: `6px solid ${COLORS.sos}` }}
+            >
+              <h4>Total SOS</h4>
+              <p style={{ fontSize: 36, margin: 0, fontWeight: 700 }}>
+                {totalSos}
+              </p>
+              <small style={{ color: "#6b7280" }}>
+                {sosPendientes} pendientes · {sosAtendidos} atendidos
+              </small>
+            </div>
+
             {riesgosPorTipo[0] && (
               <div
                 className="card metric-card"
@@ -259,6 +339,21 @@ export default function Dashboard({ token }: Props) {
                 </p>
                 <small style={{ color: "#6b7280" }}>
                   {riesgosPorTipo[0].total} registros
+                </small>
+              </div>
+            )}
+
+            {sosPorMotivo[0] && (
+              <div
+                className="card metric-card"
+                style={{ borderLeft: `6px solid ${COLORS.danger}` }}
+              >
+                <h4>Motivo SOS principal</h4>
+                <p style={{ fontSize: 20, margin: "8px 0", fontWeight: 600 }}>
+                  {sosPorMotivo[0].motivo}
+                </p>
+                <small style={{ color: "#6b7280" }}>
+                  {sosPorMotivo[0].total} alertas
                 </small>
               </div>
             )}
@@ -297,6 +392,41 @@ export default function Dashboard({ token }: Props) {
                   : `${Math.round((riesgosResueltos / totalRiesgos) * 100)}% resueltos`}
               </small>
             </div>
+
+            <div
+              className="card metric-card"
+              style={{ borderLeft: `6px solid ${COLORS.sos}` }}
+            >
+              <h4>Estado de SOS</h4>
+              <p style={{ margin: "8px 0 0", fontWeight: 600 }}>
+                Pendientes: {sosPendientes} · Revisados: {sosRevisados}
+              </p>
+              <div
+                style={{
+                  marginTop: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.1)",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width:
+                      totalSos === 0
+                        ? "0%"
+                        : `${Math.round((sosAtendidos / totalSos) * 100)}%`,
+                    height: "100%",
+                    background: COLORS.sos,
+                  }}
+                />
+              </div>
+              <small style={{ color: "#6b7280" }}>
+                {totalSos === 0
+                  ? "Sin alertas"
+                  : `${Math.round((sosAtendidos / totalSos) * 100)}% atendidos`}
+              </small>
+            </div>
           </div>
 
           <div className="chart-grid">
@@ -320,6 +450,32 @@ export default function Dashboard({ token }: Props) {
                         }}
                       />
                       <Bar dataKey="total" fill={COLORS.primary} radius={8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>SOS por motivo</h4>
+              {sosPorMotivo.length === 0 ? (
+                <p>No hay alertas SOS</p>
+              ) : (
+                <div className="chart-box chart-box-tall">
+                  <ResponsiveContainer>
+                    <BarChart data={sosPorMotivo}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis dataKey="motivo" stroke={COLORS.text} />
+                      <YAxis stroke={COLORS.text} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#020617",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: 10,
+                          color: "#e5e7eb",
+                        }}
+                      />
+                      <Bar dataKey="total" fill={COLORS.sos} radius={8} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -4,8 +4,9 @@ import Riesgos from "./pages/Riesgos";
 import Usuarios from "./pages/Usuarios";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
+import Sos from "./pages/Sos";
 
-type Page = "dashboard" | "riesgos" | "usuarios";
+type Page = "dashboard" | "riesgos" | "usuarios" | "sos";
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => {
@@ -29,6 +30,7 @@ export default function App() {
 
       {page === "dashboard" && <Dashboard token={token} />}
       {page === "riesgos" && <Riesgos token={token} />}
+      {page === "sos" && <Sos token={token} />}
       {page === "usuarios" && <Usuarios token={token} />}
     </>
   );

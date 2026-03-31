@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type Page = "dashboard" | "riesgos" | "usuarios";
+type Page = "dashboard" | "riesgos" | "usuarios" | "sos";
 
 type Props = {
   currentPage: Page;
@@ -55,6 +55,13 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
             onClick={() => handleNavigate("riesgos")}
           >
             Riesgos
+          </button>
+
+          <button
+            className={currentPage === "sos" ? "navbar-link active" : "navbar-link"}
+            onClick={() => handleNavigate("sos")}
+          >
+            SOS
           </button>
 
           <button
