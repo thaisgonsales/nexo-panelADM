@@ -8,6 +8,7 @@ import {
   resolverRiesgo,
 } from "../services/api";
 import RiesgoComentarios from "./RiesgoComentarios";
+import { assessRisk } from "../utils/riskAssessment";
 
 type Props = {
   token: string;
@@ -230,6 +231,11 @@ export default function Riesgos({ token }: Props) {
     0,
   );
 
+  const riskAssessments = useMemo(
+    () => new Map(riesgos.map((riesgo) => [riesgo.id, assessRisk(riesgo, riesgos)])),
+    [riesgos],
+  );
+
   const filtrosActivos = [
     usuarioId ? `Usuario: ${usuariosDisponibles.find((u) => u.id === usuarioId)?.label || "seleccionado"}` : null,
     estadoFiltro ? `Estado: ${estadoFiltro}` : null,
@@ -263,13 +269,7 @@ export default function Riesgos({ token }: Props) {
       alert("Debe seleccionar un tipo");
       return;
     }
-
-    if (tipoEdit === "Otro" && descEdit.trim() === "") {
-      alert("La descripción es obligatoria para 'Otro'");
-      return;
-    }
-
-    if (tipoEdit === "Otro" && !iconoEdit) {
+if (tipoEdit === "Otro" && !iconoEdit) {
       alert("Debe seleccionar un icono para 'Otro'");
       return;
     }
@@ -495,6 +495,19 @@ export default function Riesgos({ token }: Props) {
                                   <span className="risk-type-text">{r.tipo}</span>
                                 </div>
                                 <p className="risk-description-preview">{r.descripcion || "Sin descripción adicional"}</p>
+                                {(() => {
+                                  const assessment = riskAssessments.get(r.id);
+                                  if (!assessment) return null;
+
+                                  return (
+                                    <div className="risk-vep-stack">
+                                      <span className={`risk-badge risk-badge-severity risk-badge-vep-${assessment.accentClass}`}>
+                                        Nivel: {assessment.level}
+                                      </span>
+                                      <span className="risk-vep-caption">{assessment.shortLabel}</span>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </td>
                             <td>
@@ -669,12 +682,28 @@ export default function Riesgos({ token }: Props) {
             </p>
 
             {riesgoMapa.descripcion && (
-              <p style={{ color: "#555", marginBottom: 12 }}>
+              <p style={{ color: "#94a3b8", marginBottom: 12 }}>
                 Descripción: {riesgoMapa.descripcion}
               </p>
             )}
 
-            <p style={{ color: "#555", marginBottom: 12 }}>
+            {(() => {
+              const assessment = riskAssessments.get(riesgoMapa.id);
+              if (!assessment) return null;
+
+              return (
+                <div className="risk-modal-assessment">
+                  <span className={`risk-badge risk-badge-vep risk-badge-vep-${assessment.accentClass}`}>
+                    VEP {assessment.vep} · {assessment.level}
+                  </span>
+                  <span className="risk-vep-caption">
+                    {assessment.shortLabel} · {assessment.nearbyCount} registro(s) similares en 50 m
+                  </span>
+                </div>
+              );
+            })()}
+
+            <p style={{ color: "#94a3b8", marginBottom: 12 }}>
               Comuna: {riesgoMapa.comuna || "Sin comuna"}
             </p>
 
@@ -698,3 +727,8 @@ export default function Riesgos({ token }: Props) {
     </div>
   );
 }
+
+
+
+
+
