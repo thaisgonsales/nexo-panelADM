@@ -204,6 +204,27 @@ export async function resolverRiesgo(token: string, riesgoId: string) {
   return res.json();
 }
 
+export async function actualizarEstadoRiesgo(
+  token: string,
+  riesgoId: string,
+  estado: "activo" | "en_revision" | "resuelto",
+) {
+  const res = await fetch(`${API_URL}/admin/riesgos/${riesgoId}/estado`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ estado }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al actualizar estado del riesgo");
+  }
+
+  return res.json();
+}
+
 export async function listarReportes(token: string, riesgoId: string) {
   const res = await fetch(`${API_URL}/admin/riesgos/${riesgoId}/reportes`, {
     headers: {
@@ -255,8 +276,9 @@ export async function descargarReporteMensual(
   from: string,
   to: string,
 ) {
-  const params = new URLSearchParams({ from, to });
+  const params = new URLSearchParams({ from, to, v: String(Date.now()) });
   const res = await fetch(`${API_URL}/admin/reportes/mensual?${params}`, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
     },
