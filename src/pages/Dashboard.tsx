@@ -36,6 +36,15 @@ const COLORS = {
   muted: "#94a3b8",
 };
 
+const TERRITORIAL_COLORS = [
+  "#3b82f6",
+  "#f97316",
+  "#facc15",
+  "#22c55e",
+  "#a855f7",
+  "#94a3b8",
+];
+
 const tooltipStyle = {
   background: "#020617",
   border: "1px solid rgba(255,255,255,0.15)",
@@ -70,6 +79,16 @@ type Riesgo = {
   region?: string | null;
   comuna?: string | null;
   estado?: "activo" | "resuelto" | string;
+};
+
+type TerritorialStackRow = {
+  comuna: string;
+  total: number;
+  tipoPrincipal: string;
+  totalTipoPrincipal: number;
+  porcentajePrincipal: number;
+  detalleTipos: string;
+  [tipo: string]: string | number;
 };
 
 function formatMonthKey(date: string) {
@@ -328,6 +347,7 @@ export default function Dashboard({ token }: Props) {
         return {
           comuna,
           total: data.total,
+          tipos: data.tipos,
           tipoPrincipal,
           totalTipoPrincipal,
           porcentajePrincipal: toPercent(totalTipoPrincipal, data.total),
@@ -367,6 +387,51 @@ export default function Dashboard({ token }: Props) {
       })),
     [riesgosPorComunaDetalle, totalRiesgos],
   );
+
+  const concentracionTerritorialStacked = useMemo(() => {
+    const tipoTotals = new Map<string, number>();
+
+    riesgosPorComunaTop.forEach((comuna) => {
+      Object.entries(comuna.tipos).forEach(([tipo, total]) => {
+        tipoTotals.set(tipo, (tipoTotals.get(tipo) || 0) + total);
+      });
+    });
+
+    const topTipos = Array.from(tipoTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([tipo]) => tipo);
+    const hasOtros = riesgosPorComunaTop.some((comuna) =>
+      Object.keys(comuna.tipos).some((tipo) => !topTipos.includes(tipo)),
+    );
+    const series = hasOtros ? [...topTipos, "Otros"] : topTipos;
+    const data = riesgosPorComunaTop.map((comuna) => {
+      const row: TerritorialStackRow = {
+        comuna: comuna.comuna,
+        total: comuna.total,
+        tipoPrincipal: comuna.tipoPrincipal,
+        totalTipoPrincipal: comuna.totalTipoPrincipal,
+        porcentajePrincipal: comuna.porcentajePrincipal,
+        detalleTipos: comuna.detalleTipos,
+      };
+
+      series.forEach((tipo) => {
+        row[tipo] = 0;
+      });
+
+      Object.entries(comuna.tipos).forEach(([tipo, total]) => {
+        if (topTipos.includes(tipo)) {
+          row[tipo] = total;
+        } else if (hasOtros) {
+          row.Otros = Number(row.Otros || 0) + total;
+        }
+      });
+
+      return row;
+    });
+
+    return { data, series };
+  }, [riesgosPorComunaTop]);
 
   const riesgosPorEmpresa = useMemo(() => {
     const map: Record<string, number> = {};
@@ -620,7 +685,10 @@ export default function Dashboard({ token }: Props) {
                 <>
                   <div className="chart-box chart-box-tall">
                     <ResponsiveContainer>
-                      <BarChart data={riesgosPorComunaTop} margin={{ top: 22, right: 18, left: 2, bottom: 48 }}>
+                      <BarChart
+                        data={concentracionTerritorialStacked.data}
+                        margin={{ top: 22, right: 18, left: 2, bottom: 48 }}
+                      >
                         <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
                         <XAxis
                           dataKey="comuna"
@@ -634,20 +702,23 @@ export default function Dashboard({ token }: Props) {
                         <YAxis stroke={COLORS.text} allowDecimals={false} />
                         <Tooltip
                           contentStyle={tooltipStyle}
-                          formatter={(value, name, item) => {
-                            const payload = item.payload as (typeof riesgosPorComunaTop)[number];
-                            if (name === "total") {
-                              return [
-                                `${value} registro(s) · ${payload.tipoPrincipal}: ${payload.totalTipoPrincipal} (${payload.porcentajePrincipal}%)`,
-                                "Total comuna",
-                              ];
-                            }
-                            return [value, name];
+                          formatter={(value, name) => [`${value} registro(s)`, String(name)]}
+                          labelFormatter={(label, payload) => {
+                            const row = payload?.[0]?.payload as TerritorialStackRow | undefined;
+                            if (!row) return String(label);
+                            return `${label} · principal: ${row.tipoPrincipal} (${row.totalTipoPrincipal}/${row.total})`;
                           }}
                         />
-                        <Bar dataKey="total" fill={COLORS.warning} radius={[8, 8, 0, 0]}>
-                          <LabelList dataKey="etiqueta" position="top" fill={COLORS.text} fontSize={11} />
-                        </Bar>
+                        <Legend />
+                        {concentracionTerritorialStacked.series.map((tipo, index) => (
+                          <Bar
+                            key={tipo}
+                            dataKey={tipo}
+                            stackId="territorio"
+                            fill={TERRITORIAL_COLORS[index % TERRITORIAL_COLORS.length]}
+                            radius={index === concentracionTerritorialStacked.series.length - 1 ? [8, 8, 0, 0] : 0}
+                          />
+                        ))}
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
