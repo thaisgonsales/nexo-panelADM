@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 
 import { login } from "../services/api";
+import { canAccessPanel, type User } from "../utils/access";
 import loginVideo from "../assets/login-bg.mp4";
 
 type Props = {
-  onLogin: (token: string) => void;
+  onLogin: (token: string, user: User) => void;
 };
 
 export default function Login({ onLogin }: Props) {
@@ -20,15 +21,16 @@ export default function Login({ onLogin }: Props) {
     try {
       const data = await login(email, password);
 
-      if (data.user.rol !== "admin") {
+      if (!canAccessPanel(data.user)) {
         setError("Acceso solo para administradores");
         return;
       }
 
-      // ✅ SALVA TOKEN
+      // ✅ SALVA TOKEN E USUÁRIO
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      onLogin(data.token);
+      onLogin(data.token, data.user);
     } catch {
       setError("Correo o contraseña incorrectos");
     }

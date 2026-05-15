@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { actualizarEstadoSos, listarSos, SosItem } from "../services/api";
+import type { User } from "../utils/access";
+import { filterItemsByCompany } from "../utils/access";
 
 type Props = {
   token: string;
+  user: User;
+  selectedCompany?: string;
 };
 
 const ESTADOS = ["pendiente", "revisado", "atendido"] as const;
@@ -30,11 +34,16 @@ function getEstadoClass(estado: string) {
   }
 }
 
-export default function Sos({ token }: Props) {
+export default function Sos({ token, user, selectedCompany }: Props) {
   const [items, setItems] = useState<SosItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [busqueda, setBusqueda] = useState("");
+
+  const itemsVisibles = useMemo(
+    () => filterItemsByCompany(items, user, {}, selectedCompany),
+    [items, user, selectedCompany],
+  );
 
   function cargarSos() {
     setLoading(true);
@@ -59,7 +68,7 @@ export default function Sos({ token }: Props) {
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
-    return items.filter((item) => {
+    return itemsVisibles.filter((item) => {
       if (estadoFiltro && item.estado !== estadoFiltro) return false;
       if (!texto) return true;
 

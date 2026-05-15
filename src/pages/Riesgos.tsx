@@ -9,9 +9,13 @@ import {
 } from "../services/api";
 import RiesgoComentarios from "./RiesgoComentarios";
 import { assessRisk } from "../utils/riskAssessment";
+import type { User } from "../utils/access";
+import { filterItemsByCompany, filterUsersByCompany } from "../utils/access";
 
 type Props = {
   token: string;
+  user: User;
+  selectedCompany?: string;
 };
 
 type Riesgo = {
@@ -68,7 +72,7 @@ function getEmoji(tipo: string, icono?: string | null) {
   }
 }
 
-export default function Riesgos({ token }: Props) {
+export default function Riesgos({ token, user, selectedCompany }: Props) {
   const [riesgos, setRiesgos] = useState<Riesgo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,17 +90,22 @@ export default function Riesgos({ token }: Props) {
   const [iconoEdit, setIconoEdit] = useState("");
   const [riesgoMapa, setRiesgoMapa] = useState<Riesgo | null>(null);
 
+  const usuariosVisibles = useMemo(
+    () => filterUsersByCompany(usuarios, user, selectedCompany),
+    [usuarios, user, selectedCompany],
+  );
+
   const usuariosByEmail = useMemo(() => {
     const map = new Map<string, Usuario>();
-    usuarios.forEach((u) => {
+    usuariosVisibles.forEach((u) => {
       if (u.email) map.set(u.email, u);
     });
     return map;
-  }, [usuarios]);
+  }, [usuariosVisibles]);
 
   const usuariosDisponibles = useMemo(
     () =>
-      usuarios
+      usuariosVisibles
         .map((u) => ({
           id: u.id,
           label: u.nombre
@@ -104,7 +113,23 @@ export default function Riesgos({ token }: Props) {
             : u.email,
         }))
         .sort((a, b) => a.label.localeCompare(b.label, "es")),
-    [usuarios],
+    [usuariosVisibles],
+  );
+
+  const empresaPorEmail = useMemo(
+    () =>
+      usuariosVisibles.reduce<Record<string, string>>((acc, usuario) => {
+        if (usuario.email && usuario.empresa) {
+          acc[usuario.email] = usuario.empresa;
+        }
+        return acc;
+      }, {}),
+    [usuariosVisibles],
+  );
+
+  const riesgosVisibles = useMemo(
+    () => filterItemsByCompany(riesgos, user, empresaPorEmail, selectedCompany),
+    [riesgos, user, empresaPorEmail, selectedCompany],
   );
 
   const PAGE_SIZE = 10;
@@ -186,7 +211,7 @@ export default function Riesgos({ token }: Props) {
   const riesgosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
-    const filtrados = riesgos.filter((r) => {
+    const filtrados = riesgosVisibles.filter((r) => {
       if (estadoFiltro && r.estado !== estadoFiltro) return false;
 
       if (!texto) return true;
@@ -837,7 +862,6 @@ if (tipoEdit === "Otro" && !iconoEdit) {
     </div>
   );
 }
-
 
 
 

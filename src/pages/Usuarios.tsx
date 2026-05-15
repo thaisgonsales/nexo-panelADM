@@ -5,11 +5,16 @@ import {
   resetearPassword,
   eliminarUsuario,
   setUsuarioActivo,
+  editarUsuario,
 } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import type { User } from "../utils/access";
+import { filterUsersByCompany, isSuperAdmin } from "../utils/access";
 
 type Props = {
   token: string;
+  user: User;
+  selectedCompany?: string;
 };
 
 type Usuario = {
@@ -24,8 +29,14 @@ type Usuario = {
   created_at: string;
 };
 
-export default function Usuarios({ token }: Props) {
+export default function Usuarios({ token, user, selectedCompany = "" }: Props) {
   const { showToast } = useToast();
+
+  const superAdmin = isSuperAdmin(user);
+  const isCompanyAdmin = user.rol?.trim().toLowerCase() === "admin" && !!user.empresa;
+  const canEditUsers = superAdmin || isCompanyAdmin;
+  const empresaRestringida = superAdmin ? selectedCompany : user.empresa || "";
+  const canCreateUsers = canEditUsers && (superAdmin || !!empresaRestringida);
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,15 +45,23 @@ export default function Usuarios({ token }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<"admin" | "user">("user");
-  const [empresa, setEmpresa] = useState("");
+  const [empresa, setEmpresa] = useState<string>(empresaRestringida);
   const [region, setRegion] = useState("");
   const [active, setActive] = useState(true);
   const [usuarioReset, setUsuarioReset] = useState<Usuario | null>(null);
+  const [usuarioEdit, setUsuarioEdit] = useState<Usuario | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editRut, setEditRut] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRol, setEditRol] = useState<"admin" | "user">("user");
+  const [editEmpresa, setEditEmpresa] = useState("");
+  const [editRegion, setEditRegion] = useState("");
+  const [editActive, setEditActive] = useState(true);
   const [newPassword, setNewPassword] = useState("");
 
   async function cargarUsuarios() {
     const data = await listarUsuarios(token);
-    setUsuarios(data);
+    setUsuarios(filterUsersByCompany(data, user, selectedCompany));
   }
 
   function validarRut(rutValue: string) {
@@ -80,7 +99,9 @@ export default function Usuarios({ token }: Props) {
   }
 
   async function handleCrearUsuario() {
-    if (!nombre || !rut || !email || !password || !empresa || !region) {
+    if (!canCreateUsers) return;
+
+    if (!nombre || !rut || !email || !password || !region || (!empresa && !empresaRestringida)) {
       showToast(
         "Nombre, RUT, correo, contraseña, empresa y región son obligatorios",
         "error",
@@ -99,8 +120,8 @@ export default function Usuarios({ token }: Props) {
         rut,
         email,
         password,
-        rol,
-        empresa,
+        rol: superAdmin ? rol : "user",
+        empresa: superAdmin ? empresa : empresaRestringida,
         region,
         active,
       });
@@ -111,7 +132,7 @@ export default function Usuarios({ token }: Props) {
       setEmail("");
       setPassword("");
       setRol("user");
-      setEmpresa("");
+      setEmpresa(empresaRestringida);
       setRegion("");
       setActive(true);
 
@@ -122,6 +143,7 @@ export default function Usuarios({ token }: Props) {
   }
 
   async function handleResetPassword() {
+    if (!canEditUsers) return;
     if (!usuarioReset) return;
 
     if (!newPassword || newPassword.length < 4) {
@@ -139,7 +161,57 @@ export default function Usuarios({ token }: Props) {
     }
   }
 
+  function abrirEdicion(usuario: Usuario) {
+    if (!canEditUsers) return;
+
+    setUsuarioEdit(usuario);
+    setEditNombre(usuario.nombre || "");
+    setEditRut(usuario.rut ? formatearRut(usuario.rut) : "");
+    setEditEmail(usuario.email || "");
+    setEditRol(usuario.rol === "admin" ? "admin" : "user");
+    setEditEmpresa(usuario.empresa || "");
+    setEditRegion(usuario.region || "");
+    setEditActive(typeof usuario.active === "number" ? usuario.active === 1 : !!usuario.active);
+  }
+
+  async function handleEditarUsuario() {
+    if (!canEditUsers || !usuarioEdit) return;
+
+    if (!editNombre || !editRut || !editEmail || !editRegion || (superAdmin && !editEmpresa)) {
+      showToast("Nombre, RUT, correo, empresa y región son obligatorios", "error");
+      return;
+    }
+
+    if (!validarRut(editRut)) {
+      showToast("RUT inválido", "error");
+      return;
+    }
+
+    try {
+      await editarUsuario(token, usuarioEdit.id, {
+        nombre: editNombre,
+        rut: editRut,
+        email: editEmail,
+        rol: editRol,
+        empresa: editEmpresa,
+        region: editRegion,
+        active: editActive,
+      });
+
+      showToast("Usuario actualizado correctamente", "success");
+      setUsuarioEdit(null);
+      await cargarUsuarios();
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "No se pudo editar el usuario",
+        "error",
+      );
+    }
+  }
+
   async function handleEliminarUsuario(user: Usuario) {
+    if (!canEditUsers) return;
+
     const confirmar = confirm(
       `¿Eliminar definitivamente el usuario ${user.email}?\n\nEsta acción no se puede deshacer.`,
     );
@@ -156,6 +228,8 @@ export default function Usuarios({ token }: Props) {
   }
 
   async function handleToggleActivo(user: Usuario) {
+    if (!canEditUsers) return;
+
     const isActive = typeof user.active === "number" ? user.active === 1 : !!user.active;
     const nextActive = !isActive;
 
@@ -171,10 +245,12 @@ export default function Usuarios({ token }: Props) {
   }
 
   useEffect(() => {
-    listarUsuarios(token)
-      .then(setUsuarios)
-      .finally(() => setLoading(false));
-  }, [token]);
+    cargarUsuarios().finally(() => setLoading(false));
+  }, [token, selectedCompany]);
+
+  useEffect(() => {
+    setEmpresa(empresaRestringida);
+  }, [empresaRestringida]);
 
   return (
     <div className="page">
@@ -183,80 +259,85 @@ export default function Usuarios({ token }: Props) {
           <div className="card">
             <h2 className="page-title">Usuarios</h2>
 
-            <div className="form-section">
-              <h3>Crear usuario</h3>
+            {canCreateUsers && (
+              <div className="form-section">
+                <h3>Crear usuario</h3>
 
-              <div className="form-grid">
-                <input
-                  placeholder="Nombre completo"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="auth-input"
-                />
+                <div className="form-grid">
+                  <input
+                    placeholder="Nombre completo"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    className="auth-input"
+                  />
 
-                <input
-                  placeholder="RUT"
-                  value={rut}
-                  onChange={(e) => setRut(e.target.value)}
-                  onBlur={() => setRut(formatearRut(rut))}
-                  className="auth-input"
-                />
+                  <input
+                    placeholder="RUT"
+                    value={rut}
+                    onChange={(e) => setRut(e.target.value)}
+                    onBlur={() => setRut(formatearRut(rut))}
+                    className="auth-input"
+                  />
 
-                <input
-                  placeholder="Correo electrónico o usuario"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="auth-input"
-                />
+                  <input
+                    placeholder="Correo electrónico o usuario"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="auth-input"
+                  />
 
-                <input
-                  type="password"
-                  placeholder="Contraseña"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="auth-input"
-                />
+                  <input
+                    type="password"
+                    placeholder="Contraseña"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="auth-input"
+                  />
 
-                <input
-                  placeholder="Empresa"
-                  value={empresa}
-                  onChange={(e) => setEmpresa(e.target.value)}
-                  className="auth-input"
-                />
+                  <input
+                    placeholder="Empresa"
+                    value={superAdmin ? empresa : empresaRestringida}
+                    onChange={(e) => setEmpresa(e.target.value)}
+                    className="auth-input"
+                    disabled={!superAdmin || !!selectedCompany}
+                  />
 
-                <select
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                  className="auth-input"
-                >
-                  <option value="">Seleccione región / zona</option>
-                  <option value="Chiloé">Chiloé</option>
-                  <option value="Valdivia">Valdivia</option>
-                </select>
+                  <select
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="auth-input"
+                  >
+                    <option value="">Seleccione región / zona</option>
+                    <option value="Chiloé">Chiloé</option>
+                    <option value="Valdivia">Valdivia</option>
+                  </select>
 
-                <select
-                  value={rol}
-                  onChange={(e) => setRol(e.target.value as "admin" | "user")}
-                  className="auth-input"
-                >
-                  <option value="user">Usuario</option>
-                  <option value="admin">Administrador</option>
-                </select>
+                  {superAdmin && (
+                    <select
+                      value={rol}
+                      onChange={(e) => setRol(e.target.value as "admin" | "user")}
+                      className="auth-input"
+                    >
+                      <option value="user">Usuario</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                  )}
 
-                <select
-                  value={active ? "1" : "0"}
-                  onChange={(e) => setActive(e.target.value === "1")}
-                  className="auth-input"
-                >
-                  <option value="1">Activo</option>
-                  <option value="0">Inactivo</option>
-                </select>
+                  <select
+                    value={active ? "1" : "0"}
+                    onChange={(e) => setActive(e.target.value === "1")}
+                    className="auth-input"
+                  >
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                  </select>
+                </div>
+
+                <button className="auth-button form-submit" onClick={handleCrearUsuario}>
+                  Crear usuario
+                </button>
               </div>
-
-              <button className="auth-button form-submit" onClick={handleCrearUsuario}>
-                Crear usuario
-              </button>
-            </div>
+            )}
 
             {loading && <p>Cargando usuarios…</p>}
 
@@ -275,7 +356,7 @@ export default function Usuarios({ token }: Props) {
                       <th>Estado</th>
                       <th>Rol</th>
                       <th>Fecha creación</th>
-                      <th>Acciones</th>
+                      {canEditUsers && <th>Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -297,47 +378,57 @@ export default function Usuarios({ token }: Props) {
                         </td>
                         <td>{u.rol}</td>
                         <td>{new Date(u.created_at).toLocaleString("es-CL")}</td>
-                        <td>
-                          <div className="table-actions table-actions-wrap">
+                        {canEditUsers && (
+                          <td>
+                            <div className="table-actions table-actions-wrap">
+                            <button
+                              className="btn-icon btn-edit"
+                              title="Editar usuario"
+                              onClick={() => abrirEdicion(u)}
+                            >
+                              ✏️
+                            </button>
+
                             <button
                               className="btn-icon btn-edit"
                               title={
                                 typeof u.active === "number"
                                   ? u.active === 1
-                                    ? "Desactivar"
-                                    : "Activar"
+                                      ? "Desactivar"
+                                      : "Activar"
+                                    : u.active
+                                      ? "Desactivar"
+                                      : "Activar"
+                                }
+                                onClick={() => handleToggleActivo(u)}
+                              >
+                                {typeof u.active === "number"
+                                  ? u.active === 1
+                                    ? "⏸️"
+                                    : "▶️"
                                   : u.active
-                                    ? "Desactivar"
-                                    : "Activar"
-                              }
-                              onClick={() => handleToggleActivo(u)}
-                            >
-                              {typeof u.active === "number"
-                                ? u.active === 1
-                                  ? "⏸️"
-                                  : "▶️"
-                                : u.active
-                                  ? "⏸️"
-                                  : "▶️"}
-                            </button>
+                                    ? "⏸️"
+                                    : "▶️"}
+                              </button>
 
-                            <button
-                              className="btn-icon btn-edit"
-                              title="Resetear contraseña"
-                              onClick={() => setUsuarioReset(u)}
-                            >
-                              🔑
-                            </button>
+                              <button
+                                className="btn-icon btn-edit"
+                                title="Resetear contraseña"
+                                onClick={() => setUsuarioReset(u)}
+                              >
+                                🔑
+                              </button>
 
-                            <button
-                              className="btn-icon btn-delete"
-                              title="Eliminar usuario"
-                              onClick={() => handleEliminarUsuario(u)}
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </td>
+                              <button
+                                className="btn-icon btn-delete"
+                                title="Eliminar usuario"
+                                onClick={() => handleEliminarUsuario(u)}
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -348,7 +439,7 @@ export default function Usuarios({ token }: Props) {
         </section>
       </main>
 
-      {usuarioReset && (
+      {canEditUsers && usuarioReset && (
         <div className="modal-backdrop">
           <div className="modal">
             <h3>Resetear contraseña</h3>
@@ -375,6 +466,90 @@ export default function Usuarios({ token }: Props) {
               </button>
 
               <button type="button" className="btn-primary" onClick={handleResetPassword}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {canEditUsers && usuarioEdit && (
+        <div className="modal-backdrop">
+          <div className="modal modal-wide">
+            <h3>Editar usuario</h3>
+
+            <div className="form-grid">
+              <input
+                placeholder="Nombre completo"
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+                className="auth-input"
+              />
+
+              <input
+                placeholder="RUT"
+                value={editRut}
+                onChange={(e) => setEditRut(e.target.value)}
+                onBlur={() => setEditRut(formatearRut(editRut))}
+                className="auth-input"
+              />
+
+              <input
+                placeholder="Correo electrónico o usuario"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="auth-input"
+              />
+
+              <input
+                placeholder="Empresa"
+                value={editEmpresa}
+                onChange={(e) => setEditEmpresa(e.target.value)}
+                className="auth-input"
+                disabled={!superAdmin}
+              />
+
+              <select
+                value={editRegion}
+                onChange={(e) => setEditRegion(e.target.value)}
+                className="auth-input"
+              >
+                <option value="">Seleccione región / zona</option>
+                <option value="Chiloé">Chiloé</option>
+                <option value="Valdivia">Valdivia</option>
+              </select>
+
+              {superAdmin && (
+                <select
+                  value={editRol}
+                  onChange={(e) => setEditRol(e.target.value as "admin" | "user")}
+                  className="auth-input"
+                >
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              )}
+
+              <select
+                value={editActive ? "1" : "0"}
+                onChange={(e) => setEditActive(e.target.value === "1")}
+                className="auth-input"
+              >
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setUsuarioEdit(null)}
+              >
+                Cancelar
+              </button>
+
+              <button type="button" className="btn-primary" onClick={handleEditarUsuario}>
                 Guardar
               </button>
             </div>

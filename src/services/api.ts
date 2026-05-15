@@ -1,6 +1,15 @@
 const API_URL = "https://app-riscos-backend-production-c2c8.up.railway.app";
 
-export async function login(email: string, password: string) {
+export type User = {
+  id?: string;
+  email?: string;
+  rol?: string;
+  nombre?: string;
+  empresa?: string;
+  region?: string;
+};
+
+export async function login(email: string, password: string): Promise<{ token: string; user: User }> {
   const res = await fetch(`${API_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -98,6 +107,45 @@ export async function setUsuarioActivo(
 
   if (!res.ok) {
     throw new Error("Error al actualizar estado");
+  }
+
+  return res.json();
+}
+
+export async function editarUsuario(
+  token: string,
+  userId: string,
+  payload: {
+    nombre: string;
+    rut: string;
+    email: string;
+    rol: "admin" | "user";
+    empresa: string;
+    region: string;
+    active: boolean;
+  },
+) {
+  const res = await fetch(`${API_URL}/usuarios/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let message = "Error al editar usuario";
+    const text = await res.text().catch(() => "");
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        message = data?.error || message;
+      } catch {
+        message = text;
+      }
+    }
+    throw new Error(message);
   }
 
   return res.json();
@@ -275,8 +323,10 @@ export async function descargarReporteMensual(
   token: string,
   from: string,
   to: string,
+  empresa?: string,
 ) {
   const params = new URLSearchParams({ from, to, v: String(Date.now()) });
+  if (empresa) params.append("empresa", empresa);
   const res = await fetch(`${API_URL}/admin/reportes/mensual?${params}`, {
     cache: "no-store",
     headers: {

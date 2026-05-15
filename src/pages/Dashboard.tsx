@@ -6,6 +6,8 @@ import {
   listarUsuarios,
   SosItem,
 } from "../services/api";
+import type { User } from "../utils/access";
+import { filterItemsByCompany, filterUsersByCompany } from "../utils/access";
 import {
   BarChart,
   Bar,
@@ -52,6 +54,38 @@ const tooltipStyle = {
   color: "#e5e7eb",
 };
 
+type DonutTooltipPayload = {
+  name?: string;
+  payload?: {
+    name?: string;
+    value?: number;
+    total?: number;
+  };
+};
+
+function DonutTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: DonutTooltipPayload[];
+}) {
+  if (!active || !payload?.length) return null;
+
+  const row = payload[0]?.payload;
+  const value = Number(row?.value || 0);
+  const total = Number(payload[0]?.payload?.total || 0);
+  const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+
+  return (
+    <div className="chart-tooltip">
+      <strong>{row?.name || payload[0]?.name}</strong>
+      <span>{value} registro(s)</span>
+      {total > 0 && <small>{percent}% del total</small>}
+    </div>
+  );
+}
+
 function toPercent(value: number, total: number) {
   if (total === 0) return 0;
   return Math.round((value / total) * 100);
@@ -59,6 +93,8 @@ function toPercent(value: number, total: number) {
 
 type Props = {
   token: string;
+  user: User;
+  selectedCompany?: string;
 };
 
 type Usuario = {
@@ -128,7 +164,7 @@ function getLatestMonthKey(dates: string[]) {
   return latest ? latest.slice(0, 7) : null;
 }
 
-export default function Dashboard({ token }: Props) {
+export default function Dashboard({ token, user, selectedCompany }: Props) {
   const [riesgos, setRiesgos] = useState<Riesgo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [sosItems, setSosItems] = useState<SosItem[]>([]);
@@ -139,6 +175,32 @@ export default function Dashboard({ token }: Props) {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [downloading, setDownloading] = useState(false);
+
+  const usuariosVisibles = useMemo(
+    () => filterUsersByCompany(usuarios, user, selectedCompany),
+    [usuarios, user, selectedCompany],
+  );
+
+  const empresaPorEmail = useMemo(
+    () =>
+      usuariosVisibles.reduce<Record<string, string>>((acc, usuario) => {
+        if (usuario.email && usuario.empresa) {
+          acc[usuario.email] = usuario.empresa;
+        }
+        return acc;
+      }, {}),
+    [usuariosVisibles],
+  );
+
+  const riesgosPorEmpresaFiltrados = useMemo(
+    () => filterItemsByCompany(riesgos, user, empresaPorEmail, selectedCompany),
+    [riesgos, user, empresaPorEmail, selectedCompany],
+  );
+
+  const sosPorEmpresaFiltrados = useMemo(
+    () => filterItemsByCompany(sosItems, user, empresaPorEmail, selectedCompany),
+    [sosItems, user, empresaPorEmail, selectedCompany],
+  );
 
   useEffect(() => {
     Promise.all([listarRiesgos(token), listarUsuarios(token), listarSos(token)])
@@ -159,21 +221,10 @@ export default function Dashboard({ token }: Props) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const empresaPorEmail = useMemo(
-    () =>
-      usuarios.reduce<Record<string, string>>((acc, usuario) => {
-        if (usuario.email && usuario.empresa) {
-          acc[usuario.email] = usuario.empresa;
-        }
-        return acc;
-      }, {}),
-    [usuarios],
-  );
-
   const riesgosFiltrados = useMemo(() => {
     const now = new Date();
 
-    return riesgos.filter((riesgo) => {
+    return riesgosPorEmpresaFiltrados.filter((riesgo) => {
       if (periodoFiltro === "todos") {
         return true;
       }
@@ -199,12 +250,12 @@ export default function Dashboard({ token }: Props) {
 
       return true;
     });
-  }, [periodoFiltro, riesgos]);
+  }, [periodoFiltro, riesgosPorEmpresaFiltrados]);
 
   const sosFiltrados = useMemo(() => {
     const now = new Date();
 
-    return sosItems.filter((item) => {
+    return sosPorEmpresaFiltrados.filter((item) => {
       if (periodoFiltro === "todos") {
         return true;
       }
@@ -230,7 +281,7 @@ export default function Dashboard({ token }: Props) {
 
       return true;
     });
-  }, [periodoFiltro, sosItems]);
+  }, [periodoFiltro, sosPorEmpresaFiltrados]);
 
   const totalRiesgos = riesgosFiltrados.length;
   const riesgosActivos = riesgosFiltrados.filter(
@@ -458,15 +509,15 @@ export default function Dashboard({ token }: Props) {
   );
 
   const estadoRiesgosData = [
-    { name: "Activos", value: riesgosActivos, color: COLORS.active },
-    { name: "En revisión", value: riesgosEnRevision, color: COLORS.review },
-    { name: "Resueltos", value: riesgosResueltos, color: COLORS.success },
+    { name: "Activos", value: riesgosActivos, total: totalRiesgos, color: COLORS.active },
+    { name: "En revisión", value: riesgosEnRevision, total: totalRiesgos, color: COLORS.review },
+    { name: "Resueltos", value: riesgosResueltos, total: totalRiesgos, color: COLORS.success },
   ].filter((item) => item.value > 0);
 
   const estadoSosData = [
-    { name: "Pendientes", value: sosPendientes, color: COLORS.sos },
-    { name: "Revisados", value: sosRevisados, color: COLORS.review },
-    { name: "Atendidos", value: sosAtendidos, color: COLORS.success },
+    { name: "Pendientes", value: sosPendientes, total: totalSos, color: COLORS.sos },
+    { name: "Revisados", value: sosRevisados, total: totalSos, color: COLORS.review },
+    { name: "Atendidos", value: sosAtendidos, total: totalSos, color: COLORS.success },
   ].filter((item) => item.value > 0);
 
   const lecturaEjecutiva = useMemo(() => {
@@ -494,7 +545,7 @@ export default function Dashboard({ token }: Props) {
     try {
       setDownloading(true);
       const { from, to } = getMonthRange(mesReporte);
-      const blob = await descargarReporteMensual(token, from, to);
+      const blob = await descargarReporteMensual(token, from, to, selectedCompany);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -620,7 +671,7 @@ export default function Dashboard({ token }: Props) {
                           <Cell key={entry.name} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} />
+                      <Tooltip content={<DonutTooltip />} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -648,7 +699,7 @@ export default function Dashboard({ token }: Props) {
                           <Cell key={entry.name} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} />
+                      <Tooltip content={<DonutTooltip />} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>

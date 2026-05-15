@@ -1,15 +1,31 @@
 import { useEffect, useState } from "react";
+import { getVisibleCompany, isSuperAdmin, type User } from "../utils/access";
 
-type Page = "dashboard" | "riesgos" | "usuarios" | "sos";
+type Page = "dashboard" | "riesgos" | "usuarios" | "sos" | "empresas";
 
 type Props = {
   currentPage: Page;
+  user: User;
+  selectedCompany: string;
   onNavigate: (page: Page) => void;
   onLogout: () => void;
 };
 
-export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
+export default function Navbar({
+  currentPage,
+  user,
+  selectedCompany,
+  onNavigate,
+  onLogout,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const visibleCompany = getVisibleCompany(user, selectedCompany);
+  const superAdmin = isSuperAdmin(user);
+  const scopeLabel = visibleCompany
+    ? `Panel ${visibleCompany}`
+    : superAdmin
+      ? "Vista global"
+      : "Sin empresa";
 
   useEffect(() => {
     setMenuOpen(false);
@@ -72,6 +88,17 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
             SOS
           </button>
 
+          {superAdmin && (
+            <button
+              className={
+                currentPage === "empresas" ? "navbar-link active" : "navbar-link"
+              }
+              onClick={() => handleNavigate("empresas")}
+            >
+              Empresas
+            </button>
+          )}
+
           <button
             className={
               currentPage === "usuarios" ? "navbar-link active" : "navbar-link"
@@ -84,6 +111,7 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
       </div>
 
       <div className="navbar-right">
+        <span className="navbar-scope">{scopeLabel}</span>
         <button className="navbar-logout" onClick={onLogout}>
           Cerrar sesión
         </button>
