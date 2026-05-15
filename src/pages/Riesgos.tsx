@@ -4,8 +4,8 @@ import {
   listarRiesgos,
   listarUsuarios,
   eliminarRiesgo,
+  actualizarEstadoRiesgo,
   editarRiesgo,
-  resolverRiesgo,
 } from "../services/api";
 import RiesgoComentarios from "./RiesgoComentarios";
 import { assessRisk } from "../utils/riskAssessment";
@@ -27,8 +27,10 @@ type Riesgo = {
   usuario_nombre?: string | null;
   empresa?: string | null;
   region?: string | null;
-  estado: "activo" | "resuelto";
+  estado: "activo" | "en_revision" | "resuelto";
   reportes_pendientes: number;
+  foto_url?: string | null;
+  foto_public_id?: string | null;
 };
 
 type Usuario = {
@@ -123,6 +125,18 @@ export default function Riesgos({ token }: Props) {
     return new Date(fecha).toLocaleString("es-CL", {
       dateStyle: "short",
       timeStyle: "short",
+    });
+  }
+
+  function formatFecha(fecha: string) {
+    return new Date(fecha).toLocaleDateString("es-CL");
+  }
+
+  function formatHora(fecha: string) {
+    return new Date(fecha).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
   }
 
@@ -224,6 +238,7 @@ export default function Riesgos({ token }: Props) {
   }, [paginaActual, riesgosFiltrados]);
 
   const totalActivos = riesgosFiltrados.filter((r) => r.estado === "activo").length;
+  const totalEnRevision = riesgosFiltrados.filter((r) => r.estado === "en_revision").length;
   const totalResueltos = riesgosFiltrados.filter((r) => r.estado === "resuelto").length;
   const riesgosConReportes = riesgosFiltrados.filter((r) => r.reportes_pendientes > 0).length;
   const totalReportesPendientes = riesgosFiltrados.reduce(
@@ -277,13 +292,8 @@ if (tipoEdit === "Otro" && !iconoEdit) {
     try {
       const payload: any = { tipo: tipoEdit };
 
-      if (tipoEdit === "Otro") {
-        payload.descripcion = descEdit;
-        payload.icono = iconoEdit;
-      } else {
-        payload.descripcion = "";
-        payload.icono = null;
-      }
+      payload.descripcion = descEdit;
+      payload.icono = tipoEdit === "Otro" ? iconoEdit : null;
 
       await editarRiesgo(token, editando.id, payload);
 
@@ -293,7 +303,7 @@ if (tipoEdit === "Otro" && !iconoEdit) {
             ? {
                 ...r,
                 tipo: tipoEdit,
-                descripcion: tipoEdit === "Otro" ? descEdit : "",
+                descripcion: descEdit,
                 icono: tipoEdit === "Otro" ? iconoEdit : null,
               }
             : r,
@@ -334,6 +344,11 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                 <span className="risk-summary-caption">Riesgos que siguen abiertos</span>
               </div>
               <div className="risk-summary-card accent-slate">
+                <span className="risk-summary-label">En revisión</span>
+                <strong className="risk-summary-value">{totalEnRevision}</strong>
+                <span className="risk-summary-caption">Riesgos en seguimiento operativo</span>
+              </div>
+              <div className="risk-summary-card accent-slate">
                 <span className="risk-summary-label">Resueltos</span>
                 <strong className="risk-summary-value">{totalResueltos}</strong>
                 <span className="risk-summary-caption">Incidentes ya cerrados</span>
@@ -362,65 +377,84 @@ if (tipoEdit === "Otro" && !iconoEdit) {
               </div>
 
               <div className="filters risk-filters-grid">
-                <input
-                  type="text"
-                  className="filter-input risk-filter-search"
-                  placeholder="Buscar por tipo, comuna, usuario o descripción"
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                />
+                <label className="risk-filter-field risk-filter-search">
+                  <span>Búsqueda</span>
+                  <input
+                    type="text"
+                    className="filter-input"
+                    placeholder="Tipo, comuna, usuario o descripción"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                  />
+                </label>
 
-                <select
-                  className="filter-input"
-                  value={usuarioId}
-                  onChange={(e) => setUsuarioId(e.target.value)}
-                >
-                  <option value="">Todos los usuarios</option>
-                  {usuariosDisponibles.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
+                <label className="risk-filter-field">
+                  <span>Usuario</span>
+                  <select
+                    className="filter-input"
+                    value={usuarioId}
+                    onChange={(e) => setUsuarioId(e.target.value)}
+                  >
+                    <option value="">Todos los usuarios</option>
+                    {usuariosDisponibles.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                <select
-                  className="filter-input"
-                  value={estadoFiltro}
-                  onChange={(e) => setEstadoFiltro(e.target.value)}
-                >
-                  <option value="">Todos los estados</option>
-                  <option value="activo">Activos</option>
-                  <option value="resuelto">Resueltos</option>
-                </select>
+                <label className="risk-filter-field">
+                  <span>Estado</span>
+                  <select
+                    className="filter-input"
+                    value={estadoFiltro}
+                    onChange={(e) => setEstadoFiltro(e.target.value)}
+                  >
+                    <option value="">Todos los estados</option>
+                    <option value="activo">Activos</option>
+                    <option value="en_revision">En revisión</option>
+                    <option value="resuelto">Resueltos</option>
+                  </select>
+                </label>
 
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={fechaDesde}
-                  onChange={(e) => setFechaDesde(e.target.value)}
-                />
+                <label className="risk-filter-field">
+                  <span>Desde</span>
+                  <input
+                    type="date"
+                    className="filter-input"
+                    value={fechaDesde}
+                    onChange={(e) => setFechaDesde(e.target.value)}
+                  />
+                </label>
 
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={fechaHasta}
-                  onChange={(e) => setFechaHasta(e.target.value)}
-                />
+                <label className="risk-filter-field">
+                  <span>Hasta</span>
+                  <input
+                    type="date"
+                    className="filter-input"
+                    value={fechaHasta}
+                    onChange={(e) => setFechaHasta(e.target.value)}
+                  />
+                </label>
 
-                <select
-                  className="filter-input"
-                  value={orden}
-                  onChange={(e) => setOrden(e.target.value)}
-                >
-                  <option value="fecha_desc">Fecha: más reciente</option>
-                  <option value="fecha_asc">Fecha: más antigua</option>
-                  <option value="comuna_asc">Comuna: A-Z</option>
-                  <option value="comuna_desc">Comuna: Z-A</option>
-                  <option value="tipo_asc">Tipo: A-Z</option>
-                  <option value="tipo_desc">Tipo: Z-A</option>
-                  <option value="estado_asc">Estado: A-Z</option>
-                  <option value="estado_desc">Estado: Z-A</option>
-                </select>
+                <label className="risk-filter-field">
+                  <span>Orden</span>
+                  <select
+                    className="filter-input"
+                    value={orden}
+                    onChange={(e) => setOrden(e.target.value)}
+                  >
+                    <option value="fecha_desc">Fecha: más reciente</option>
+                    <option value="fecha_asc">Fecha: más antigua</option>
+                    <option value="comuna_asc">Comuna: A-Z</option>
+                    <option value="comuna_desc">Comuna: Z-A</option>
+                    <option value="tipo_asc">Tipo: A-Z</option>
+                    <option value="tipo_desc">Tipo: Z-A</option>
+                    <option value="estado_asc">Estado: A-Z</option>
+                    <option value="estado_desc">Estado: Z-A</option>
+                  </select>
+                </label>
               </div>
 
               {filtrosActivos.length > 0 && (
@@ -477,6 +511,7 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                     <thead>
                       <tr>
                         <th>Riesgo</th>
+                        <th>Foto</th>
                         <th>Ubicación</th>
                         <th>Reportado por</th>
                         <th>Estado</th>
@@ -511,6 +546,24 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                               </div>
                             </td>
                             <td>
+                              {r.foto_url ? (
+                                <button
+                                  className="risk-photo-button"
+                                  onClick={() => setRiesgoMapa(r)}
+                                  title="Ver foto y mapa"
+                                >
+                                  <img
+                                    className="risk-photo-thumb"
+                                    src={r.foto_url}
+                                    alt={`Foto del riesgo ${r.tipo}`}
+                                    loading="lazy"
+                                  />
+                                </button>
+                              ) : (
+                                <span className="risk-no-photo">Sin foto</span>
+                              )}
+                            </td>
+                            <td>
                               <div className="risk-meta-cell">
                                 <strong>{r.comuna || "Sin comuna"}</strong>
                                 <span>{r.region || "Región no informada"}</span>
@@ -524,8 +577,20 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                             </td>
                             <td>
                               <div className="risk-status-stack">
-                                <span className={r.estado === "resuelto" ? "risk-badge risk-badge-success" : "risk-badge risk-badge-warning"}>
-                                  {r.estado === "resuelto" ? "Resuelto" : "Activo"}
+                                <span
+                                  className={
+                                    r.estado === "resuelto"
+                                      ? "risk-badge risk-badge-success"
+                                      : r.estado === "en_revision"
+                                        ? "risk-badge risk-badge-alert"
+                                        : "risk-badge risk-badge-warning"
+                                  }
+                                >
+                                  {r.estado === "resuelto"
+                                    ? "Resuelto"
+                                    : r.estado === "en_revision"
+                                      ? "En revisión"
+                                      : "Activo"}
                                 </span>
                                 {r.reportes_pendientes > 0 && (
                                   <span className="risk-badge risk-badge-alert">
@@ -535,9 +600,9 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                               </div>
                             </td>
                             <td>
-                              <div className="risk-meta-cell">
-                                <strong>{formatFechaHora(r.created_at)}</strong>
-                                <span>ID: {r.id}</span>
+                              <div className="risk-meta-cell risk-date-cell">
+                                <strong>{formatFecha(r.created_at)}</strong>
+                                <span>{formatHora(r.created_at)}</span>
                               </div>
                             </td>
                             <td>
@@ -565,19 +630,55 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                                   <span>✏️</span>
                                   <span>Editar</span>
                                 </button>
-                                {r.estado === "activo" && (
+                                {r.estado !== "en_revision" && (
+                                  <button
+                                    className="risk-action-button"
+                                    onClick={async () => {
+                                      if (!confirm("¿Marcar este riesgo como en revisión?")) return;
+                                      await actualizarEstadoRiesgo(token, r.id, "en_revision");
+                                      setRiesgos((prev) =>
+                                        prev.map((x) =>
+                                          x.id === r.id ? { ...x, estado: "en_revision" } : x,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <span>🕵️</span>
+                                    <span>En revisión</span>
+                                  </button>
+                                )}
+                                {r.estado !== "resuelto" && (
                                   <button
                                     className="risk-action-button risk-action-button-success"
                                     onClick={async () => {
                                       if (!confirm("¿Marcar este riesgo como resuelto?")) return;
-                                      await resolverRiesgo(token, r.id);
+                                      await actualizarEstadoRiesgo(token, r.id, "resuelto");
                                       setRiesgos((prev) =>
-                                        prev.map((x) => (x.id === r.id ? { ...x, estado: "resuelto" } : x)),
+                                        prev.map((x) =>
+                                          x.id === r.id ? { ...x, estado: "resuelto" } : x,
+                                        ),
                                       );
                                     }}
                                   >
                                     <span>✅</span>
                                     <span>Resolver</span>
+                                  </button>
+                                )}
+                                {r.estado !== "activo" && (
+                                  <button
+                                    className="risk-action-button"
+                                    onClick={async () => {
+                                      if (!confirm("¿Volver este riesgo a activo?")) return;
+                                      await actualizarEstadoRiesgo(token, r.id, "activo");
+                                      setRiesgos((prev) =>
+                                        prev.map((x) =>
+                                          x.id === r.id ? { ...x, estado: "activo" } : x,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <span>↺</span>
+                                    <span>Activar</span>
                                   </button>
                                 )}
                                 <button className="risk-action-button risk-action-button-danger" onClick={() => handleEliminar(r.id)}>
@@ -590,7 +691,7 @@ if (tipoEdit === "Otro" && !iconoEdit) {
 
                           {riesgoAbierto === r.id && (
                             <tr className="risk-detail-row">
-                              <td colSpan={6}>
+                              <td colSpan={7}>
                                 <div className="risk-detail-panel">
                                   <div className="risk-detail-header">
                                     <h4>Historial y reportes</h4>
@@ -654,10 +755,11 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                   })}
                 </div>
 
-                <label>Descripción</label>
-                <textarea rows={3} value={descEdit} onChange={(e) => setDescEdit(e.target.value)} />
               </>
             )}
+
+            <label>Descripción</label>
+            <textarea rows={3} value={descEdit} onChange={(e) => setDescEdit(e.target.value)} />
 
             <div className="modal-actions">
               <button type="button" className="btn-secondary" onClick={() => setEditando(null)}>
@@ -687,6 +789,14 @@ if (tipoEdit === "Otro" && !iconoEdit) {
               </p>
             )}
 
+            {riesgoMapa.foto_url && (
+              <img
+                className="risk-modal-photo"
+                src={riesgoMapa.foto_url}
+                alt={`Foto del riesgo ${riesgoMapa.tipo}`}
+              />
+            )}
+
             {(() => {
               const assessment = riskAssessments.get(riesgoMapa.id);
               if (!assessment) return null;
@@ -697,7 +807,7 @@ if (tipoEdit === "Otro" && !iconoEdit) {
                     VEP {assessment.vep} · {assessment.level}
                   </span>
                   <span className="risk-vep-caption">
-                    {assessment.shortLabel} · {assessment.nearbyCount} registro(s) similares en 50 m
+                    {assessment.shortLabel} · {assessment.nearbyCount} registro(s) similares en 200 m
                   </span>
                 </div>
               );

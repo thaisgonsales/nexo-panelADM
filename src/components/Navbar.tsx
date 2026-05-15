@@ -23,10 +23,18 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <div className="navbar-brand">
-          <div className="navbar-title">NEXO · Admin Panel</div>
-          <div className="navbar-subtitle">Community Watch & Map</div>
-        </div>
+        <button
+          type="button"
+          className="navbar-brand"
+          onClick={() => handleNavigate("dashboard")}
+          aria-label="Ir a Resumen Operativo"
+        >
+          <img className="navbar-logo" src="/favicon.png" alt="" />
+          <span className="navbar-brand-copy">
+            <span className="navbar-title">Nexo App</span>
+            <span className="navbar-subtitle">Panel de gestión operativa</span>
+          </span>
+        </button>
 
         <button
           type="button"
@@ -45,7 +53,7 @@ export default function Navbar({ currentPage, onNavigate, onLogout }: Props) {
             }
             onClick={() => handleNavigate("dashboard")}
           >
-            Dashboard
+            Resumen Operativo
           </button>
 
           <button

@@ -44,12 +44,103 @@
 }
 
 .chart-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .metric-card,
 .chart-card {
   min-width: 0;
+}
+
+.executive-strip {
+  margin-bottom: 24px;
+}
+
+.executive-list {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(2, 6, 23, 0.42));
+}
+
+.executive-item {
+  position: relative;
+  padding: 12px 14px 12px 38px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.58);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.executive-item::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #2dd4bf;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.12);
+}
+
+.metric-card,
+.chart-card {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.66));
+}
+
+.metric-card h4,
+.chart-card h4 {
+  color: #f8fafc;
+}
+
+.metric-card small {
+  color: #94a3b8 !important;
+}
+
+.chart-card {
+  display: grid;
+  gap: 14px;
+}
+
+.chart-card h4 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.chart-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.chart-title-row p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.chart-insight {
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(45, 212, 191, 0.09);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  color: #ccfbf1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.chart-card-wide {
+  grid-column: span 2;
 }
 
 .chart-box {
@@ -131,21 +222,49 @@
 }
 
 .navbar-brand {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.navbar-brand:hover {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.navbar-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-brand-copy {
+  display: grid;
+  gap: 2px;
   line-height: 1.1;
 }
 
 .navbar-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.6px;
+  color: #f8fafc;
+  letter-spacing: 0.2px;
 }
 
 .navbar-subtitle {
   font-size: 11px;
   color: #94a3b8;
+  font-weight: 500;
 }
 
 .navbar-menu {
@@ -302,9 +421,11 @@ select.filter-input option {
   background: rgba(2, 6, 23, 0.6);
   z-index: 10000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -314,6 +435,9 @@ select.filter-input option {
   width: 100%;
   max-width: 420px;
   position: relative;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @media (max-width: 1024px) {
@@ -324,6 +448,19 @@ select.filter-input option {
   .chart-grid {
     grid-template-columns: 1fr;
   }
+
+  .chart-card-wide {
+    grid-column: span 1;
+  }
+
+  .chart-title-row {
+    flex-direction: column;
+  }
+
+  .chart-insight {
+    max-width: none;
+  }
+
 }
 
 @media (max-width: 768px) {
@@ -562,6 +699,7 @@ select.filter-input option {
   margin: 0;
   display: grid;
   gap: 16px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.68));
 }
 
 .risk-toolbar-head {
@@ -595,12 +733,32 @@ select.filter-input option {
 
 .risk-filters-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .risk-filter-search {
   grid-column: span 2;
+}
+
+.risk-filter-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.risk-filter-field span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.risk-filter-field .filter-input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .risk-filter-chips {
@@ -702,10 +860,59 @@ select.filter-input option {
   overflow: hidden;
 }
 
+.risk-photo-thumb {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+}
+
+.risk-photo-button {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.risk-photo-button:hover .risk-photo-thumb {
+  border-color: rgba(34, 197, 94, 0.65);
+  filter: brightness(1.08);
+}
+
+.risk-no-photo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 72px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.16);
+  color: #94a3b8;
+  background: rgba(255,255,255,0.04);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .risk-meta-cell span {
   color: #94a3b8;
   font-size: 12px;
   font-weight: 400;
+}
+
+.risk-date-cell {
+  min-width: 112px;
+  gap: 4px;
+}
+
+.risk-date-cell strong,
+.risk-date-cell span {
+  display: block;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .risk-badge {
@@ -735,24 +942,40 @@ select.filter-input option {
 
 .risk-action-grid {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
+  align-items: stretch;
 }
 
 .risk-action-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 8px 12px;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06);
   color: #e5e7eb;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
+  white-space: normal;
+}
+
+.risk-action-button span:first-child {
+  width: 18px;
+  flex: 0 0 18px;
+  text-align: center;
+  line-height: 1;
+}
+
+.risk-action-button span:last-child {
+  min-width: 0;
 }
 
 .risk-action-button:hover {
@@ -856,4 +1079,14 @@ select.filter-input option {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.risk-modal-photo {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  margin-bottom: 14px;
 }

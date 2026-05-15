@@ -1,4 +1,4 @@
-const API_URL = localStorage.getItem("panel_api_url") || "https://app-riscos-backend-production-c2c8.up.railway.app";
+const API_URL = "https://app-riscos-backend-production-c2c8.up.railway.app";
 
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_URL}/login`, {

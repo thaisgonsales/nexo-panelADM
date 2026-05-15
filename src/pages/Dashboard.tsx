@@ -16,17 +16,37 @@ import {
   LineChart,
   Line,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LabelList,
 } from "recharts";
 
 const COLORS = {
-  primary: "#22c55e",
-  success: "#6ee7b7",
-  warning: "#facc15",
+  primary: "#2dd4bf",
+  success: "#22c55e",
+  warning: "#f59e0b",
   danger: "#f97316",
   grid: "rgba(255,255,255,0.15)",
   text: "#e5e7eb",
-  sos: "#fb7185",
+  sos: "#e11d48",
+  active: "#f59e0b",
+  review: "#3b82f6",
+  muted: "#94a3b8",
 };
+
+const tooltipStyle = {
+  background: "#020617",
+  border: "1px solid rgba(255,255,255,0.15)",
+  borderRadius: 10,
+  color: "#e5e7eb",
+};
+
+function toPercent(value: number, total: number) {
+  if (total === 0) return 0;
+  return Math.round((value / total) * 100);
+}
 
 type Props = {
   token: string;
@@ -62,8 +82,15 @@ function formatMonthKey(date: string) {
 function formatMonthCL(monthKey: string) {
   const [year, month] = monthKey.split("-").map(Number);
   return new Date(year, month - 1, 1).toLocaleDateString("es-CL", {
-    year: "numeric",
     month: "short",
+  });
+}
+
+function formatMonthLongCL(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("es-CL", {
+    year: "numeric",
+    month: "long",
   });
 }
 
@@ -190,8 +217,11 @@ export default function Dashboard({ token }: Props) {
   const riesgosActivos = riesgosFiltrados.filter(
     (r) => r.estado === "activo",
   ).length;
+  const riesgosEnRevision = riesgosFiltrados.filter(
+    (r) => r.estado === "en_revision",
+  ).length;
   const riesgosResueltos = riesgosFiltrados.filter(
-    (r) => r.estado && r.estado !== "activo",
+    (r) => r.estado === "resuelto",
   ).length;
 
   const totalSos = sosFiltrados.length;
@@ -210,6 +240,16 @@ export default function Dashboard({ token }: Props) {
       .sort((a, b) => b.total - a.total);
   }, [riesgosFiltrados]);
 
+  const riesgosPorTipoTop = useMemo(
+    () =>
+      riesgosPorTipo.slice(0, 8).map((item) => ({
+        ...item,
+        porcentaje: toPercent(item.total, totalRiesgos),
+        etiqueta: `${item.total} (${toPercent(item.total, totalRiesgos)}%)`,
+      })),
+    [riesgosPorTipo, totalRiesgos],
+  );
+
   const sosPorMotivo = useMemo(() => {
     const map: Record<string, number> = {};
     sosFiltrados.forEach((item) => {
@@ -220,6 +260,16 @@ export default function Dashboard({ token }: Props) {
       .map(([motivo, total]) => ({ motivo, total }))
       .sort((a, b) => b.total - a.total);
   }, [sosFiltrados]);
+
+  const sosPorMotivoTop = useMemo(
+    () =>
+      sosPorMotivo.slice(0, 6).map((item) => ({
+        ...item,
+        porcentaje: toPercent(item.total, totalSos),
+        etiqueta: `${item.total} (${toPercent(item.total, totalSos)}%)`,
+      })),
+    [sosPorMotivo, totalSos],
+  );
 
   const riesgosPorMes = useMemo(() => {
     const map: Record<string, number> = {};
@@ -246,6 +296,34 @@ export default function Dashboard({ token }: Props) {
       .sort((a, b) => b.total - a.total);
   }, [riesgosFiltrados]);
 
+  const tendenciaMensual = useMemo(() => {
+    if (riesgosPorMes.length < 2) {
+      return "Aún no hay suficientes meses para comparar tendencia.";
+    }
+
+    const ultimo = riesgosPorMes[riesgosPorMes.length - 1];
+    const anterior = riesgosPorMes[riesgosPorMes.length - 2];
+    const diferencia = ultimo.total - anterior.total;
+
+    if (diferencia === 0) {
+      return `Sin variación frente al mes anterior: ${ultimo.total} registros en ${formatMonthLongCL(ultimo.mes)}.`;
+    }
+
+    return diferencia > 0
+      ? `Aumento de ${diferencia} registro(s) frente al mes anterior: ${ultimo.total} en ${formatMonthLongCL(ultimo.mes)}.`
+      : `Disminución de ${Math.abs(diferencia)} registro(s) frente al mes anterior: ${ultimo.total} en ${formatMonthLongCL(ultimo.mes)}.`;
+  }, [riesgosPorMes]);
+
+  const riesgosPorComunaTop = useMemo(
+    () =>
+      riesgosPorComuna.slice(0, 10).map((item) => ({
+        ...item,
+        porcentaje: toPercent(item.total, totalRiesgos),
+        etiqueta: `${item.total} (${toPercent(item.total, totalRiesgos)}%)`,
+      })),
+    [riesgosPorComuna, totalRiesgos],
+  );
+
   const riesgosPorEmpresa = useMemo(() => {
     const map: Record<string, number> = {};
     riesgosFiltrados.forEach((riesgo) => {
@@ -260,6 +338,49 @@ export default function Dashboard({ token }: Props) {
       .sort((a, b) => b.total - a.total);
   }, [empresaPorEmail, riesgosFiltrados]);
 
+  const riesgosPorEmpresaTop = useMemo(
+    () =>
+      riesgosPorEmpresa.slice(0, 8).map((item) => ({
+        ...item,
+        porcentaje: toPercent(item.total, totalRiesgos),
+        etiqueta: `${item.total} (${toPercent(item.total, totalRiesgos)}%)`,
+      })),
+    [riesgosPorEmpresa, totalRiesgos],
+  );
+
+  const estadoRiesgosData = [
+    { name: "Activos", value: riesgosActivos, color: COLORS.active },
+    { name: "En revisión", value: riesgosEnRevision, color: COLORS.review },
+    { name: "Resueltos", value: riesgosResueltos, color: COLORS.success },
+  ].filter((item) => item.value > 0);
+
+  const estadoSosData = [
+    { name: "Pendientes", value: sosPendientes, color: COLORS.sos },
+    { name: "Revisados", value: sosRevisados, color: COLORS.review },
+    { name: "Atendidos", value: sosAtendidos, color: COLORS.success },
+  ].filter((item) => item.value > 0);
+
+  const lecturaEjecutiva = useMemo(() => {
+    const tipoPrincipal = riesgosPorTipo[0]?.tipo || "sin tipo predominante";
+    const comunaPrincipal = riesgosPorComuna[0]?.comuna || "sin comuna predominante";
+    const motivoSos = sosPorMotivo[0]?.motivo || "sin motivo predominante";
+
+    return [
+      `${totalRiesgos} riesgos registrados en el período seleccionado; ${riesgosActivos} activos, ${riesgosEnRevision} en revisión y ${riesgosResueltos} resueltos.`,
+      `El riesgo más frecuente es ${tipoPrincipal} y la mayor concentración territorial está en ${comunaPrincipal}.`,
+      `${totalSos} alertas SOS registradas; el motivo principal es ${motivoSos}.`,
+    ];
+  }, [
+    riesgosActivos,
+    riesgosEnRevision,
+    riesgosPorComuna,
+    riesgosPorTipo,
+    riesgosResueltos,
+    sosPorMotivo,
+    totalRiesgos,
+    totalSos,
+  ]);
+
   async function handleDescargarReporte() {
     try {
       setDownloading(true);
@@ -268,7 +389,7 @@ export default function Dashboard({ token }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `reporte-${mesReporte}.pdf`;
+      a.download = `informe-operativo-${mesReporte}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -279,14 +400,14 @@ export default function Dashboard({ token }: Props) {
   }
 
   if (loading) {
-    return <p style={{ padding: 24 }}>Cargando dashboard…</p>;
+    return <p style={{ padding: 24 }}>Cargando resumen operativo…</p>;
   }
 
   return (
     <div className="page">
       <main className="main">
         <section className="page-section">
-          <h2 className="page-title">Dashboard</h2>
+          <h2 className="page-title">Resumen Operativo</h2>
 
           <div className="card toolbar-card">
             <div className="toolbar-grid">
@@ -300,6 +421,16 @@ export default function Dashboard({ token }: Props) {
                 <option value="30d">Últimos 30 días</option>
                 <option value="mes_actual">Mes actual</option>
               </select>
+            </div>
+          </div>
+
+          <div className="executive-strip">
+            <div className="executive-list">
+              {lecturaEjecutiva.map((item) => (
+                <div className="executive-item" key={item}>
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -352,156 +483,106 @@ export default function Dashboard({ token }: Props) {
                 <p style={{ fontSize: 20, margin: "8px 0", fontWeight: 600 }}>
                   {sosPorMotivo[0].motivo}
                 </p>
-                <small style={{ color: "#6b7280" }}>
-                  {sosPorMotivo[0].total} alertas
-                </small>
-              </div>
+              <small style={{ color: "#6b7280" }}>
+                {sosPorMotivo[0].total} alertas
+              </small>
+            </div>
             )}
-
-            <div
-              className="card metric-card"
-              style={{ borderLeft: `6px solid ${COLORS.success}` }}
-            >
-              <h4>Estado de riesgos</h4>
-              <p style={{ margin: "8px 0 0", fontWeight: 600 }}>
-                Activos: {riesgosActivos} · Resueltos: {riesgosResueltos}
-              </p>
-              <div
-                style={{
-                  marginTop: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,0.1)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width:
-                      totalRiesgos === 0
-                        ? "0%"
-                        : `${Math.round((riesgosActivos / totalRiesgos) * 100)}%`,
-                    height: "100%",
-                    background: COLORS.success,
-                  }}
-                />
-              </div>
-              <small style={{ color: "#6b7280" }}>
-                {totalRiesgos === 0
-                  ? "Sin registros"
-                  : `${Math.round((riesgosResueltos / totalRiesgos) * 100)}% resueltos`}
-              </small>
-            </div>
-
-            <div
-              className="card metric-card"
-              style={{ borderLeft: `6px solid ${COLORS.sos}` }}
-            >
-              <h4>Estado de SOS</h4>
-              <p style={{ margin: "8px 0 0", fontWeight: 600 }}>
-                Pendientes: {sosPendientes} · Revisados: {sosRevisados}
-              </p>
-              <div
-                style={{
-                  marginTop: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,0.1)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width:
-                      totalSos === 0
-                        ? "0%"
-                        : `${Math.round((sosAtendidos / totalSos) * 100)}%`,
-                    height: "100%",
-                    background: COLORS.sos,
-                  }}
-                />
-              </div>
-              <small style={{ color: "#6b7280" }}>
-                {totalSos === 0
-                  ? "Sin alertas"
-                  : `${Math.round((sosAtendidos / totalSos) * 100)}% atendidos`}
-              </small>
-            </div>
           </div>
 
           <div className="chart-grid">
-            <div className="card chart-card">
-              <h4>Riesgos por tipo</h4>
-              {riesgosPorTipo.length === 0 ? (
-                <p>No hay datos</p>
-              ) : (
-                <div className="chart-box chart-box-tall">
-                  <ResponsiveContainer>
-                    <BarChart data={riesgosPorTipo}>
-                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="tipo" stroke={COLORS.text} />
-                      <YAxis stroke={COLORS.text} />
-                      <Tooltip
-                        contentStyle={{
-                          background: "#020617",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          borderRadius: 10,
-                          color: "#e5e7eb",
-                        }}
-                      />
-                      <Bar dataKey="total" fill={COLORS.primary} radius={8} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-
-            <div className="card chart-card">
-              <h4>SOS por motivo</h4>
-              {sosPorMotivo.length === 0 ? (
-                <p>No hay alertas SOS</p>
-              ) : (
-                <div className="chart-box chart-box-tall">
-                  <ResponsiveContainer>
-                    <BarChart data={sosPorMotivo}>
-                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="motivo" stroke={COLORS.text} />
-                      <YAxis stroke={COLORS.text} allowDecimals={false} />
-                      <Tooltip
-                        contentStyle={{
-                          background: "#020617",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          borderRadius: 10,
-                          color: "#e5e7eb",
-                        }}
-                      />
-                      <Bar dataKey="total" fill={COLORS.sos} radius={8} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-
-            <div className="card chart-card">
-              <h4>Riesgos por comuna</h4>
-              {riesgosPorComuna.length === 0 ? (
+            <div className="card chart-card chart-card-half">
+              <h4>Estado operativo de riesgos</h4>
+              {estadoRiesgosData.length === 0 ? (
                 <p>No hay datos</p>
               ) : (
                 <div className="chart-box">
                   <ResponsiveContainer>
-                    <BarChart data={riesgosPorComuna}>
+                    <PieChart>
+                      <Pie
+                        data={estadoRiesgosData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={62}
+                        outerRadius={94}
+                        paddingAngle={3}
+                      >
+                        {estadoRiesgosData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card chart-card-half">
+              <h4>Estado de alertas SOS</h4>
+              {estadoSosData.length === 0 ? (
+                <p>No hay alertas SOS</p>
+              ) : (
+                <div className="chart-box">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={estadoSosData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={62}
+                        outerRadius={94}
+                        paddingAngle={3}
+                      >
+                        {estadoSosData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>Riesgos más frecuentes</h4>
+              {riesgosPorTipoTop.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box chart-box-tall">
+                  <ResponsiveContainer>
+                    <BarChart data={riesgosPorTipoTop} layout="vertical" margin={{ left: 12, right: 44 }}>
                       <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="comuna" stroke={COLORS.text} />
-                      <YAxis stroke={COLORS.text} />
-                      <Tooltip
-                        contentStyle={{
-                          background: "#020617",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          borderRadius: 10,
-                          color: "#e5e7eb",
-                        }}
-                      />
-                      <Bar dataKey="total" fill={COLORS.warning} radius={8} />
+                      <XAxis type="number" stroke={COLORS.text} allowDecimals={false} />
+                      <YAxis dataKey="tipo" type="category" stroke={COLORS.text} width={150} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" fill={COLORS.primary} radius={8}>
+                        <LabelList dataKey="etiqueta" position="right" fill={COLORS.text} fontSize={12} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card">
+              <h4>Concentración territorial</h4>
+              {riesgosPorComunaTop.length === 0 ? (
+                <p>No hay datos</p>
+              ) : (
+                <div className="chart-box chart-box-tall">
+                  <ResponsiveContainer>
+                    <BarChart data={riesgosPorComunaTop} layout="vertical" margin={{ left: 12, right: 44 }}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis type="number" stroke={COLORS.text} allowDecimals={false} />
+                      <YAxis dataKey="comuna" type="category" stroke={COLORS.text} width={150} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" fill={COLORS.warning} radius={8}>
+                        <LabelList dataKey="etiqueta" position="right" fill={COLORS.text} fontSize={12} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -510,24 +591,19 @@ export default function Dashboard({ token }: Props) {
 
             <div className="card chart-card">
               <h4>Riesgos por empresa</h4>
-              {riesgosPorEmpresa.length === 0 ? (
+              {riesgosPorEmpresaTop.length === 0 ? (
                 <p>No hay datos</p>
               ) : (
                 <div className="chart-box">
                   <ResponsiveContainer>
-                    <BarChart data={riesgosPorEmpresa}>
+                    <BarChart data={riesgosPorEmpresaTop} layout="vertical" margin={{ left: 12, right: 44 }}>
                       <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="empresa" stroke={COLORS.text} />
-                      <YAxis stroke={COLORS.text} />
-                      <Tooltip
-                        contentStyle={{
-                          background: "#020617",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          borderRadius: 10,
-                          color: "#e5e7eb",
-                        }}
-                      />
-                      <Bar dataKey="total" fill={COLORS.success} radius={8} />
+                      <XAxis type="number" stroke={COLORS.text} allowDecimals={false} />
+                      <YAxis dataKey="empresa" type="category" stroke={COLORS.text} width={150} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" fill={COLORS.success} radius={8}>
+                        <LabelList dataKey="etiqueta" position="right" fill={COLORS.text} fontSize={12} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -535,24 +611,58 @@ export default function Dashboard({ token }: Props) {
             </div>
 
             <div className="card chart-card">
-              <h4>Evolución mensual de registros</h4>
+              <h4>SOS por motivo</h4>
+              {sosPorMotivoTop.length === 0 ? (
+                <p>No hay alertas SOS</p>
+              ) : (
+                <div className="chart-box">
+                  <ResponsiveContainer>
+                    <BarChart data={sosPorMotivoTop} layout="vertical" margin={{ left: 12, right: 44 }}>
+                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                      <XAxis type="number" stroke={COLORS.text} allowDecimals={false} />
+                      <YAxis dataKey="motivo" type="category" stroke={COLORS.text} width={150} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" fill={COLORS.sos} radius={8}>
+                        <LabelList dataKey="etiqueta" position="right" fill={COLORS.text} fontSize={12} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="card chart-card chart-card-wide">
+              <div className="chart-title-row">
+                <div>
+                  <h4>Tendencia mensual de riesgos</h4>
+                  <p>Registros creados por mes en el período seleccionado.</p>
+                </div>
+                <span className="chart-insight">{tendenciaMensual}</span>
+              </div>
               {riesgosPorMes.length === 0 ? (
                 <p>No hay datos</p>
               ) : (
                 <div className="chart-box">
                   <ResponsiveContainer>
-                    <LineChart data={riesgosPorMes}>
+                    <LineChart data={riesgosPorMes} margin={{ top: 22, right: 28, left: 6, bottom: 8 }}>
                       <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" tickFormatter={formatMonthCL} />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
+                      <XAxis dataKey="mes" stroke={COLORS.text} tickFormatter={formatMonthCL} />
+                      <YAxis stroke={COLORS.text} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        labelFormatter={(label) => formatMonthLongCL(String(label))}
+                      />
                       <Line
+                        name="Riesgos registrados"
                         type="monotone"
                         dataKey="total"
-                        stroke={COLORS.danger}
+                        stroke={COLORS.primary}
                         strokeWidth={3}
-                        dot={{ r: 4 }}
-                      />
+                        dot={{ r: 5, strokeWidth: 2, fill: "#020617" }}
+                        activeDot={{ r: 7 }}
+                      >
+                        <LabelList dataKey="total" position="top" fill={COLORS.text} fontSize={12} />
+                      </Line>
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
