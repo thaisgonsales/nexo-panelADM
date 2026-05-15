@@ -296,6 +296,51 @@ export default function Dashboard({ token }: Props) {
       .sort((a, b) => b.total - a.total);
   }, [riesgosFiltrados]);
 
+  const riesgosPorComunaDetalle = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        total: number;
+        tipos: Record<string, number>;
+      }
+    > = {};
+
+    riesgosFiltrados.forEach((riesgo) => {
+      const comuna = riesgo.comuna || riesgo.region || "Sin comuna";
+      const tipo = riesgo.tipo || "Sin tipo";
+
+      if (!map[comuna]) {
+        map[comuna] = { total: 0, tipos: {} };
+      }
+
+      map[comuna].total += 1;
+      map[comuna].tipos[tipo] = (map[comuna].tipos[tipo] || 0) + 1;
+    });
+
+    return Object.entries(map)
+      .map(([comuna, data]) => {
+        const tiposOrdenados = Object.entries(data.tipos).sort(
+          (a, b) => b[1] - a[1],
+        );
+        const [tipoPrincipal, totalTipoPrincipal] =
+          tiposOrdenados[0] || ["Sin tipo", 0];
+
+        return {
+          comuna,
+          total: data.total,
+          tipoPrincipal,
+          totalTipoPrincipal,
+          porcentajePrincipal: toPercent(totalTipoPrincipal, data.total),
+          etiqueta: `${totalTipoPrincipal} ${tipoPrincipal}`,
+          detalleTipos: tiposOrdenados
+            .slice(0, 3)
+            .map(([tipo, total]) => `${tipo}: ${total}`)
+            .join(" · "),
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [riesgosFiltrados]);
+
   const tendenciaMensual = useMemo(() => {
     if (riesgosPorMes.length < 2) {
       return "Aún no hay suficientes meses para comparar tendencia.";
@@ -316,12 +361,11 @@ export default function Dashboard({ token }: Props) {
 
   const riesgosPorComunaTop = useMemo(
     () =>
-      riesgosPorComuna.slice(0, 10).map((item) => ({
+      riesgosPorComunaDetalle.slice(0, 8).map((item) => ({
         ...item,
         porcentaje: toPercent(item.total, totalRiesgos),
-        etiqueta: `${item.total} (${toPercent(item.total, totalRiesgos)}%)`,
       })),
-    [riesgosPorComuna, totalRiesgos],
+    [riesgosPorComunaDetalle, totalRiesgos],
   );
 
   const riesgosPorEmpresa = useMemo(() => {
@@ -573,19 +617,53 @@ export default function Dashboard({ token }: Props) {
               {riesgosPorComunaTop.length === 0 ? (
                 <p>No hay datos</p>
               ) : (
-                <div className="chart-box chart-box-tall">
-                  <ResponsiveContainer>
-                    <BarChart data={riesgosPorComunaTop} layout="vertical" margin={{ left: 12, right: 44 }}>
-                      <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
-                      <XAxis type="number" stroke={COLORS.text} allowDecimals={false} />
-                      <YAxis dataKey="comuna" type="category" stroke={COLORS.text} width={150} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Bar dataKey="total" fill={COLORS.warning} radius={8}>
-                        <LabelList dataKey="etiqueta" position="right" fill={COLORS.text} fontSize={12} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <>
+                  <div className="chart-box chart-box-tall">
+                    <ResponsiveContainer>
+                      <BarChart data={riesgosPorComunaTop} margin={{ top: 22, right: 18, left: 2, bottom: 48 }}>
+                        <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="comuna"
+                          stroke={COLORS.text}
+                          interval={0}
+                          angle={-28}
+                          textAnchor="end"
+                          height={58}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis stroke={COLORS.text} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          formatter={(value, name, item) => {
+                            const payload = item.payload as (typeof riesgosPorComunaTop)[number];
+                            if (name === "total") {
+                              return [
+                                `${value} registro(s) · ${payload.tipoPrincipal}: ${payload.totalTipoPrincipal} (${payload.porcentajePrincipal}%)`,
+                                "Total comuna",
+                              ];
+                            }
+                            return [value, name];
+                          }}
+                        />
+                        <Bar dataKey="total" fill={COLORS.warning} radius={[8, 8, 0, 0]}>
+                          <LabelList dataKey="etiqueta" position="top" fill={COLORS.text} fontSize={11} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="territory-detail-list">
+                    {riesgosPorComunaTop.slice(0, 5).map((item) => (
+                      <div className="territory-detail-item" key={item.comuna}>
+                        <strong>{item.comuna}</strong>
+                        <span>
+                          Riesgo principal: {item.tipoPrincipal} ({item.totalTipoPrincipal} de {item.total})
+                        </span>
+                        <small>{item.detalleTipos}</small>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
